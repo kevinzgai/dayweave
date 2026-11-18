@@ -28,7 +28,52 @@
 
 ## 📸 截图
 
-> 待补充：运行 `pnpm tauri:dev` 后截图放到 `docs/` 目录并替换此处。
+> 以下截图为首次启动自带的内置演示数据，存放在 `docs/`。
+
+### 首页驾驶舱 · 五分钟想清楚今天要做什么
+
+金句 + 今日完成度大环；下面依次是今天最重要的 3 件事、今日时间块安排、四象限分布，以及专注与习惯打卡进度。
+
+![首页驾驶舱](docs/screenshot-dashboard.png)
+
+### 收件箱 · 四象限
+
+<table>
+<tr>
+<td width="50%" valign="top"><b>收件箱 · 零压力捕捉</b><br />脑子里蹦出来的，先扔进来，之后再决定去哪</td>
+<td width="50%" valign="top"><b>四象限 · 任务分布</b><br />按重要 / 紧急排布，聚焦真正重要的事</td>
+</tr>
+<tr>
+<td valign="top"><img src="docs/screenshot-inbox.png" alt="收件箱" /></td>
+<td valign="top"><img src="docs/screenshot-matrix.png" alt="四象限" /></td>
+</tr>
+</table>
+
+### 时间块 · 专注计时
+
+<table>
+<tr>
+<td width="50%" valign="top"><b>日程 / 时间块</b><br />一块一块安排一天，计时到点自动结算</td>
+<td width="50%" valign="top"><b>专注计时</b><br />番茄钟式计时，可开独立浮窗置顶、贴边收起</td>
+</tr>
+<tr>
+<td valign="top"><img src="docs/screenshot-blocks.png" alt="日程 / 时间块" /></td>
+<td valign="top"><img src="docs/screenshot-focus.png" alt="专注计时" /></td>
+</tr>
+</table>
+
+### 时间复盘 · 独立浮窗
+
+<table>
+<tr>
+<td width="70%" valign="top"><b>时间复盘</b><br />每天几分钟，把经验留下来；右侧给出复盘提示与历史记录</td>
+<td width="30%" valign="top"><b>浮窗卡片</b><br />计时与今日任务常驻桌面，与主窗口实时同步</td>
+</tr>
+<tr>
+<td valign="top"><img src="docs/screenshot-review.png" alt="时间复盘" /></td>
+<td valign="top"><img src="docs/screenshot-mini.png" alt="浮窗卡片" width="260" /></td>
+</tr>
+</table>
 
 ## 🚀 快速开始
 

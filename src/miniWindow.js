@@ -4,7 +4,8 @@
  */
 export const isTauri = () => typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__
 
-export const MINI_SIZES = { width: 304, height: 430, compact: 58 }
+export const MINI_SIZES = { width: 304, height: 430, compactWidth: 196, compactHeight: 60 }
+let expandedBounds = null
 
 export async function openMiniWindow() {
   if (!isTauri()) return false
@@ -49,6 +50,22 @@ export async function openMiniWindow() {
   }
 }
 
+export async function openMainWindow() {
+  if (!isTauri()) return false
+  try {
+    const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow')
+    const main = await WebviewWindow.getByLabel('main')
+    if (!main) return false
+    await main.show()
+    await main.unminimize()
+    await main.setFocus()
+    return true
+  } catch (e) {
+    console.warn('打开主窗口失败：', e)
+    return false
+  }
+}
+
 export async function closeMiniWindow() {
   if (!isTauri()) return false
   try {
@@ -76,12 +93,16 @@ export async function setMiniCompact(compact) {
     } catch { /* 拿不到显示器信息就用默认值 */ }
 
     if (compact) {
-      const s = MINI_SIZES.compact
-      await w.setSize(new LogicalSize(s, s))
-      await w.setPosition(new LogicalPosition(mx + mw - s - 10, my + 140))
+      const [size, position] = await Promise.all([w.innerSize(), w.outerPosition()])
+      expandedBounds = { size, position }
+      await w.setMinSize(new LogicalSize(MINI_SIZES.compactWidth, MINI_SIZES.compactHeight))
+      await w.setSize(new LogicalSize(MINI_SIZES.compactWidth, MINI_SIZES.compactHeight))
+      await w.setPosition(new LogicalPosition(mx + mw - MINI_SIZES.compactWidth - 12, my + 140))
     } else {
-      await w.setSize(new LogicalSize(MINI_SIZES.width, MINI_SIZES.height))
-      await w.setPosition(new LogicalPosition(mx + mw - MINI_SIZES.width - 20, my + 96))
+      await w.setSize(expandedBounds?.size || new LogicalSize(MINI_SIZES.width, MINI_SIZES.height))
+      await w.setPosition(expandedBounds?.position || new LogicalPosition(mx + mw - MINI_SIZES.width - 20, my + 96))
+      await w.setMinSize(new LogicalSize(260, 320))
+      expandedBounds = null
     }
     return true
   } catch { return false }

@@ -198,7 +198,7 @@ async function attachTab(port, url) {
     const m = await cmd('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })
     return m.result && m.result.result ? m.result.result.value : undefined
   }
-  return { ev, close: () => { try { ws.close() } catch {} } }
+  return { ev, cmd, close: () => { try { ws.close() } catch {} } }
 }
 
 /* ------------------------------- 套件 ------------------------------- */
@@ -259,12 +259,16 @@ suite('任务增删改', async (s, c) => {
   const added = st.tasks.find(t => t.title === '自动化测试任务')
   c('新建任务入列', st.tasks.length === base + 1 && !!added && added.quadrant === 'Q1', `共 ${st.tasks.length} 条`)
   c('新任务默认未完成', added.status === 'todo' && added.progress === 0)
+  const localToday = await s.ev(`(()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')})()`)
+  c('新任务默认计划今天', added.date === localToday)
 
   await s.ev(`(() => { const row = [...document.querySelectorAll('.task-row')].find(r => (r.textContent || '').includes('自动化测试任务')); if (!row) return false; row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return true })()`)
   await sleep(280)
   c('双击任务行打开编辑弹窗', await s.ev(`!!document.querySelector('.modal')`))
   await s.ev(`window.__tm.set('.modal input.input','编辑后的任务标题')`)
   await s.ev(`window.__tm.set('.modal textarea','备注：由自动化测试写入')`)
+  await s.ev(`window.__tm.set('.modal input[data-schedule="date"]','2099-12-31')`)
+  c('未来计划日期禁用今日要事', await s.ev(`document.querySelector('.modal input[type="checkbox"]').disabled && !document.querySelector('.modal input[type="checkbox"]').checked`))
   await s.ev(`window.__tm.set('.modal select','done',1)`)
   await sleep(200)
   const rng = await s.ev(`document.querySelector('.modal input[type=range]').value`)
@@ -276,6 +280,7 @@ suite('任务增删改', async (s, c) => {
   const edited = st.tasks.find(t => t.title === '编辑后的任务标题')
   c('编辑保存生效', !!edited && edited.status === 'done' && edited.quadrant === 'Q3' && edited.progress === 100)
   c('备注已保存', !!edited && String(edited.note).includes('自动化'))
+  c('计划日期编辑保存', edited.date === '2099-12-31' && edited.todayTop === false)
 
   await s.ev(`(() => { const row = [...document.querySelectorAll('.task-row')].find(r => (r.textContent || '').includes('编辑后的任务标题')); if (!row) return false; row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); return true })()`)
   await sleep(260)
@@ -363,8 +368,8 @@ suite('时间块', async (s, c) => {
   await s.ev(`window.__tm.click('.btn-primary','新增时间块')`)
   await sleep(240)
   await s.ev(`window.__tm.set('.modal input.input','自动化时间块')`)
-  await s.ev(`window.__tm.set('.modal input[type=time]','21:00',0)`)
-  await s.ev(`window.__tm.set('.modal input[type=time]','21:30',1)`)
+  await s.ev(`window.__tm.set('.modal input[data-schedule=time]','21:00',0)`)
+  await s.ev(`window.__tm.set('.modal input[data-schedule=time]','21:30',1)`)
   await s.ev(`window.__tm.click('.modal-foot .btn-primary','保存')`)
   await sleep(400)
   let st = await s.st()
@@ -637,6 +642,38 @@ suite('浮窗卡片与贴边', async (s, c) => {
   await s.ev(`window.__tm.click('.top-btn','浮窗')`)
   await sleep(420)
   c('点击顶栏浮窗按钮打开卡片', await s.ev(`!!document.querySelector('.mini-panel')`))
+  const countBeforeCreate = (await s.st()).tasks.length
+  await s.ev(`document.querySelector('.mini-add').click()`)
+  await sleep(150)
+  c('创建表单在浮窗内部弹出', await s.ev(`!!document.querySelector('.mini-panel .mini-create-modal')`))
+  c('空标题不可保存', await s.ev(`document.querySelector('.mini-create-modal button[type="submit"]').disabled`))
+  await s.ev(`window.__tm.set('.mini-create-modal input', '  浮窗快速新增任务  ')`)
+  await s.ev(`window.__tm.set('.mini-create-modal select', 'Q1')`)
+  c('日期时间已替换原生控件', await s.ev(`!document.querySelector('.mini-create-modal input[type="date"], .mini-create-modal input[type="time"]')`))
+  await s.ev(`document.querySelector('.mini-create-modal input[data-schedule="time"]').parentElement.querySelector('button').click()`)
+  await s.ev(`document.querySelector('.schedule-picker button[aria-label="14时"]').click()`)
+  await s.ev(`document.querySelector('.schedule-picker button[aria-label="30分"]').click()`)
+  await s.ev(`window.__tm.click('.schedule-picker button','确定')`)
+  c('自定义时间面板选择小时分钟', await s.ev(`document.querySelector('.mini-create-modal input[data-schedule="time"]').value === '14:30' && !document.querySelector('.schedule-picker')`))
+  await s.ev(`document.querySelector('.mini-create-modal input[data-schedule="date"]').parentElement.querySelector('button').click()`)
+  await s.ev(`window.__tm.click('.schedule-picker button','明天')`)
+  c('自定义日历快捷选择明天', await s.ev(`!!document.querySelector('.mini-create-modal input[data-schedule="date"]').value && !document.querySelector('.schedule-picker')`))
+  await s.ev(`window.__tm.set('.mini-create-modal input[data-schedule="date"]', '2099-12-31')`)
+  c('浮窗未来日期不能标今日要事', await s.ev(`document.querySelector('.mini-create-modal input[type="checkbox"]').disabled`))
+  await s.ev(`document.querySelector('.mini-create-modal button[type="submit"]').click()`)
+  await sleep(250)
+  const createdTask = (await s.st()).tasks.find(t => t.title === '浮窗快速新增任务')
+  c('浮窗保存任务及表单字段', !!createdTask && createdTask.quadrant === 'Q1' && createdTask.time === '14:30' && createdTask.date === '2099-12-31' && createdTask.status === 'todo')
+  c('浮窗展示全部未完成任务且超过5条不截断', await s.ev(`window.__tm.count('.mini-row')`) === (await s.st()).tasks.filter(t => t.status !== 'done').length)
+  c('普通新任务立即显示日期', await s.ev(`[...document.querySelectorAll('.mini-row')].some(r=>r.textContent.includes('浮窗快速新增任务') && r.textContent.includes('2099-12-31'))`))
+  c('保存后浮窗保留并提示成功', await s.ev(`!!document.querySelector('.mini-panel .mini-created') && !document.querySelector('.mini-create-modal')`))
+  c('创建任务未跳转主窗口页面', await s.ev(`window.__tm.title()`) === '时间管理工作台')
+  await s.ev(`document.querySelector('.mini-add').click()`)
+  await sleep(100)
+  c('重新打开表单清空草稿', await s.ev(`document.querySelector('.mini-create-modal input').value === ''`))
+  await s.ev(`window.__tm.set('.mini-create-modal input', '取消的任务')`)
+  await s.ev(`window.__tm.click('.mini-create-modal button', '取消')`)
+  c('取消不创建任务', (await s.st()).tasks.length === countBeforeCreate + 1)
   const clock = await s.ev(`window.__tm.text('.mini-clock')`)
   c('浮窗显示倒计时', /^\d{2}:\d{2}$/.test(clock), clock)
   c('浮窗列出进行中/要事任务', (await s.ev(`window.__tm.count('.mini-row')`)) > 0,
@@ -660,6 +697,11 @@ suite('浮窗卡片与贴边', async (s, c) => {
   await sleep(400)
   const st2 = await s.st()
   c('浮窗按任务秒开专注', st2.timer.running === true && !!st2.timer.task)
+  c('运行时只显示倒计时和任务目标', await s.ev(`!!document.querySelector('.mini-focus-clock') && document.querySelector('.mini-focus-task').textContent === ${JSON.stringify(st2.timer.task)} && !document.querySelector('.mini-panel .mini-head, .mini-panel .mini-list, .mini-panel .mini-actions, .mini-panel .mini-foot, .mini-panel .mini-created')`))
+  await s.ev(`document.querySelector('.mini-focus-clock').click()`)
+  await sleep(150)
+  c('点击倒计时暂停并恢复任务列表', !(await s.st()).timer.running && await s.ev(`!!document.querySelector('.mini-list')`))
+  c('未运行时专注区保持紧凑', await s.ev(`document.querySelector('.mini-timer').getBoundingClientRect().height < 85 && parseFloat(getComputedStyle(document.querySelector('.mini-timer .mini-clock')).fontSize) <= 22`))
 
   await s.ev(`document.querySelectorAll('.mini-head .mini-ico')[1].click()`)
   await sleep(360)
@@ -697,6 +739,24 @@ suite('独立迷你窗口', async (s, c) => {
   c('浮窗组件独立渲染', info && info.panel === true && info.clock === true)
   c('无横向溢出', info && info.overflow <= 1, '溢出 ' + (info ? info.overflow : '?'))
   c('浮窗内列出任务', info && info.rows > 0, '行数 ' + (info ? info.rows : '?'))
+  await mini.ev(HELPERS)
+  await mini.ev(`document.querySelector('.mini-add').click()`)
+  await sleep(150)
+  for (const [width, height] of [[304, 430], [260, 320]]) {
+    await mini.cmd('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
+    const fits = await mini.ev(`(()=>{
+      const d = document.querySelector('.mini-create-modal');
+      const r = d.getBoundingClientRect();
+      const f = d.querySelector('.modal-foot').getBoundingClientRect();
+      return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && f.bottom <= innerHeight && d.scrollWidth <= d.clientWidth;
+    })()`)
+    c(`创建表单适配 ${width}×${height} 且保存按钮可见`, fits)
+  }
+  await mini.ev(`window.__tm.set('.mini-create-modal input', '独立浮窗创建任务')`)
+  await mini.ev(`document.querySelector('.mini-create-modal button[type="submit"]').click()`)
+  await sleep(500)
+  c('独立浮窗直接保存并同步任务', (await s.st()).tasks.some(t => t.title === '独立浮窗创建任务'))
+  c('保存后仍停留独立浮窗', await mini.ev(`!!document.querySelector('.mini-panel.in-window') && !document.querySelector('.topbar') && !document.querySelector('.mini-create-modal')`))
   mini.close()
   await sleep(200)
 })

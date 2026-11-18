@@ -1,80 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Plus, Trash2, CheckCircle2, Grid2x2, ListTodo, Clock, Flag, Check,
+  Plus, Trash2, CheckCircle2, Grid2x2, ListTodo, Clock, Check,
   Pencil, Move, Search, X, ArrowUpNarrowWide, ArrowDownWideNarrow, ListFilter,
 } from 'lucide-react'
-import { useStore, QUADRANTS, TASK_STATUS } from '../store'
+import { useStore, QUADRANTS, TASK_STATUS, canBeTodayTop, taskSchedule, isTaskOverdue } from '../store'
 import TaskEditor from '../components/TaskEditor'
+import AddTask from '../components/AddTask'
 import {
-  Button, Card, Checkbox, ConfirmDialog, FormField, FormGrid, IconButton, Modal,
+  Button, Card, ConfirmDialog, FormField, IconButton, Modal,
   Pill, Segmented, Select, TextInput, TONES, cx,
 } from '../ui'
 
-function AddTask({ onAdd }) {
-  const { state } = useStore()
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ title: '', quadrant: 'Q2', time: '', todayTop: false })
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const topCount = state.tasks.filter(t => t.todayTop && t.status !== 'done').length
-  const topFull = topCount >= 3
-  const close = () => {
-    setOpen(false)
-    setForm({ title: '', quadrant: 'Q2', time: '', todayTop: false })
-  }
-  const submit = (e) => {
-    e.preventDefault()
-    if (!form.title.trim()) return
-    onAdd({ ...form, title: form.title.trim() })
-    close()
-  }
-
-  return (
-    <>
-      <Button icon={Plus} onClick={() => setOpen(true)}>新建任务</Button>
-      <Modal
-        open={open}
-        onClose={close}
-        as="form"
-        onSubmit={submit}
-        title="新建任务"
-        subtitle="先写下来，细节可以之后在编辑里补"
-        icon={ListTodo}
-        size="lg"
-        footer={
-          <>
-            <div className="grow" />
-            <Button variant="ghost" onClick={close}>取消</Button>
-            <Button type="submit" icon={Check}>保存</Button>
-          </>
-        }
-      >
-        <FormField label="任务标题" required>
-          <TextInput autoFocus placeholder="要做什么？" value={form.title} onChange={e => set('title', e.target.value)} />
-        </FormField>
-        <FormGrid>
-          <FormField label="四象限">
-            <Select value={form.quadrant} onChange={e => set('quadrant', e.target.value)}>
-              {Object.values(QUADRANTS).map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="计划时间">
-            <TextInput type="time" value={form.time} onChange={e => set('time', e.target.value)} />
-          </FormField>
-        </FormGrid>
-        <Checkbox
-          label={topFull
-            ? '今日要事已满 3 条，先取消已有的一个再标记'
-            : `标记为「今日最重要的 3 件事」（已选 ${topCount}/3）`}
-          icon={Flag}
-          checked={form.todayTop}
-          disabled={topFull}
-          className={topFull ? 'opacity-60' : undefined}
-          onChange={e => set('todayTop', e.target.checked)}
-        />
-      </Modal>
-    </>
-  )
-}
 
 /**
  * 状态标签：传了 onCycle 就变成可点的状态切换按钮（与时间块页一致），否则只读展示
@@ -128,6 +64,7 @@ function TaskMenu({ task, x, y, onClose, onEdit }) {
     actions.addTask({
       title: task.title,
       quadrant: task.quadrant,
+      date: task.date || '',
       time: task.time,
       // 复制件不继承「今日要事」，避免悄悄挤掉当天的 3 个名额
       todayTop: false,
@@ -405,8 +342,9 @@ function ListView({ tasks, onEdit, onRequestDelete }) {
                   >
                     {QUADRANTS[t.quadrant].label}
                   </Pill>
-                  {t.todayTop && <Pill tone="warning">★ 今日要事</Pill>}
-                  {t.time && <span className="ui-help flex items-center gap-1"><Clock size={11} /> {t.time}</span>}
+                  {t.todayTop && canBeTodayTop(t) && <Pill tone="warning">★ 今日要事</Pill>}
+                  {taskSchedule(t) && <span className="ui-help flex items-center gap-1"><Clock size={11} /> {taskSchedule(t)}</span>}
+                  {isTaskOverdue(t) && <Pill tone="danger">逾期</Pill>}
                 </div>
               </div>
               <div className="mini-track hidden w-[60px] shrink-0 sm:block"><i style={{ width: t.progress + '%' }} /></div>
@@ -496,7 +434,10 @@ function MatrixView({ tasks, filtered, onEdit, onRequestDelete }) {
                   style={{ borderBottom: idx === list.length - 1 ? 'none' : '1px solid var(--line)' }}
                 >
                   <TaskCheck task={t} />
-                  <span className="grow cursor-grab truncate text-[12.5px]" title="单击编辑 · 拖拽调整象限 · 右键更多操作" onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(t) }}>{t.title}</span>
+                  <span className="grow cursor-grab truncate text-[12.5px]" title="单击编辑 · 拖拽调整象限 · 右键更多操作" onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(t) }}>
+                    {t.title}
+                    {taskSchedule(t) && <span className="ui-help block">{taskSchedule(t)}{isTaskOverdue(t) ? ' · 逾期' : ''}</span>}
+                  </span>
                   <EditHint />
                   <IconButton icon={Trash2} label="删除任务" tone="danger" size={12} onClick={() => onRequestDelete(t)} />
                 </div>

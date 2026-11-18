@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import ScheduleInput from './ScheduleInput'
 
 // 弹窗栈：Esc 只关闭最上层，避免「二次确认」把编辑器一起关掉
 const modalStack = []
@@ -126,6 +127,8 @@ export function Modal({
   footer,
   className,
   bodyClassName,
+  portalTarget,
+  maskClassName,
   // 默认不允许 Esc / 点遮罩关闭：所有弹窗统一走自定义「取消 / 保存」按钮，
   // 避免误触丢数据。个别需要快速关闭的面板可显式传 dismissible。
   dismissible = false,
@@ -155,7 +158,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="modal-mask"
+      className={cx('modal-mask', maskClassName)}
       onMouseDown={(e) => {
         if (dismissible && e.target === e.currentTarget) onClose?.()
       }}
@@ -187,7 +190,7 @@ export function Modal({
         {footer && <div className="modal-foot">{footer}</div>}
       </Tag>
     </div>,
-    document.body,
+    portalTarget || document.body,
   )
 }
 
@@ -243,7 +246,9 @@ export function FormGrid({ cols = 2, className, children }) {
   return <div className={cx(base, className)}>{children}</div>
 }
 
-export const TextInput = ({ className, ...rest }) => <input className={cx('input', className)} {...rest} />
+export const TextInput = ({ className, type, ...rest }) => type === 'date' || type === 'time'
+  ? <ScheduleInput type={type} className={className} {...rest} />
+  : <input type={type} className={cx('input', className)} {...rest} />
 export const TextArea = ({ className, ...rest }) => <textarea className={cx('textarea', className)} {...rest} />
 export const Select = ({ className, children, ...rest }) => (
   <select className={cx('select', className)} {...rest}>{children}</select>

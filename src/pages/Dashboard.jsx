@@ -4,7 +4,7 @@ import {
   Send, Target, Brain, RefreshCw, Timer, ArrowUpRight,
   TrendingUp, ChevronRight, Plus,
 } from 'lucide-react'
-import { useStore, QUADRANTS, TASK_STATUS, todayStr } from '../store'
+import { useStore, QUADRANTS, TASK_STATUS, todayStr, taskSchedule } from '../store'
 
 const blockIcons = { sun: Sun, brain: Brain, target: Target, coffee: Coffee, users: Users, send: Send, reflect: RefreshCw }
 const statusStyle = {
@@ -147,7 +147,7 @@ export default function Dashboard({ onNav }) {
                     <b>{t.progress}<i>%</i></b>
                   </Ring>
                   <div className="dash-card-meta">
-                    <span>计划 {t.time || '全天'}</span>
+                    <span>计划 {taskSchedule(t) || '未安排'}</span>
                     <span style={{ color: QUADRANTS[t.quadrant].color }}>{QUADRANTS[t.quadrant].label}</span>
                   </div>
                 </div>

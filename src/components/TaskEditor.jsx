@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Save, Trash2, Star, Clock, Flag, AlignLeft } from 'lucide-react'
-import { useStore, QUADRANTS, TASK_STATUS } from '../store'
+import { useStore, QUADRANTS, TASK_STATUS, canBeTodayTop } from '../store'
 import {
   Button, Checkbox, ConfirmDialog, FormField, FormGrid, Modal,
   Select, TextArea, TextInput,
@@ -13,6 +13,7 @@ export default function TaskEditor({ task, onClose }) {
     note: task.note || '',
     quadrant: task.quadrant || 'Q2',
     status: task.status || 'todo',
+    date: task.date || '',
     time: task.time || '',
     progress: task.progress ?? 0,
     todayTop: !!task.todayTop,
@@ -25,16 +26,18 @@ export default function TaskEditor({ task, onClose }) {
       note: task.note || '',
       quadrant: task.quadrant || 'Q2',
       status: task.status || 'todo',
+      date: task.date || '',
       time: task.time || '',
       progress: task.progress ?? 0,
       todayTop: !!task.todayTop,
     })
   }, [task])
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v, ...(k === 'date' && !canBeTodayTop({ date: v }) ? { todayTop: false } : {}) }))
+  const future = !canBeTodayTop(form)
 
   // 今日要事名额：只统计未完成的其它任务，与驾驶舱「今日最重要的 3 件事」口径一致
-  const topCount = state.tasks.filter(t => t.todayTop && t.status !== 'done' && t.id !== task.id).length
+  const topCount = state.tasks.filter(t => t.todayTop && t.status !== 'done' && t.id !== task.id && canBeTodayTop(t)).length
   const topFull = topCount >= 3
 
   // 状态与进度联动：完成→100，待开始→0
@@ -92,7 +95,7 @@ export default function TaskEditor({ task, onClose }) {
           />
         </FormField>
 
-        <FormGrid cols={3} className="modal-grid">
+        <FormGrid>
           <FormField label={<><Flag size={11} className="mr-1" /> 四象限</>}>
             <Select value={form.quadrant} onChange={e => set('quadrant', e.target.value)}>
               {Object.values(QUADRANTS).map(q => <option key={q.key} value={q.key}>{q.label}</option>)}
@@ -103,7 +106,10 @@ export default function TaskEditor({ task, onClose }) {
               {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </Select>
           </FormField>
-          <FormField label={<><Clock size={11} className="mr-1" /> 时间</>}>
+          <FormField label="计划日期（可留空）">
+            <TextInput type="date" aria-label="计划日期" value={form.date} onChange={e => set('date', e.target.value)} />
+          </FormField>
+          <FormField label={<><Clock size={11} className="mr-1" /> 计划时间</>}>
             <TextInput type="time" value={form.time} onChange={e => set('time', e.target.value)} />
           </FormField>
         </FormGrid>
@@ -118,13 +124,13 @@ export default function TaskEditor({ task, onClose }) {
         </FormField>
 
         <Checkbox
-          label={topFull
+          label={future ? '未来日期任务不能设为今日要事' : topFull
             ? '今日要事已满 3 条，先取消已有的一个再标记'
             : `标记为「今日最重要的 3 件事」（已选 ${topCount}/3）`}
           icon={Star}
-          checked={form.todayTop}
-          disabled={topFull}
-          className={topFull ? 'opacity-60' : undefined}
+          checked={form.todayTop && !future}
+          disabled={future || (topFull && !form.todayTop)}
+          className={future || topFull ? 'opacity-60' : undefined}
           onChange={e => set('todayTop', e.target.checked)}
         />
       </Modal>

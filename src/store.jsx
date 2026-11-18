@@ -9,6 +9,19 @@ export const todayStr = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+export const canBeTodayTop = (task) => !task.date || task.date <= todayStr()
+export const taskSchedule = (task) => {
+  let label = ''
+  if (task.date) {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    label = task.date === todayStr() ? '今天' : task.date === dateKey(tomorrow) ? '明天' : task.date
+  }
+  return [label, task.time].filter(Boolean).join(' ')
+}
+export const isTaskOverdue = (task) => task.status !== 'done' && !!task.date && task.date < todayStr()
+const normalizeTask = (task) => ({ ...task, date: task.date || '', todayTop: !!task.todayTop && canBeTodayTop(task) })
+
 const dateKey = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 
 export const QUADRANTS = {
@@ -125,7 +138,7 @@ function loadState() {
     merged.settings = { ...base.settings, ...(merged.settings || {}) }
     if (!THEMES.some(t => t.id === merged.settings.theme)) merged.settings.theme = DEFAULT_THEME
     merged.habits = (merged.habits || []).map(h => ({ history: [], freq: '每日', ...h }))
-    merged.tasks = (merged.tasks || []).map(t => ({ note: '', ...t }))
+    merged.tasks = (merged.tasks || []).map(t => normalizeTask({ note: '', ...t }))
     merged.timer = { ...base.timer, ...(merged.timer || {}) }
     return merged
   } catch {
@@ -216,13 +229,13 @@ export function StoreProvider({ children }) {
     inboxToTask: (id, extra = {}) => setState(s => {
       const item = s.inbox.find(i => i.id === id)
       if (!item) return s
-      const task = { id: uid('t'), title: item.title, quadrant: 'Q2', status: 'todo', progress: 0, time: '', todayTop: false, createdAt: Date.now(), ...extra }
+      const task = normalizeTask({ id: uid('t'), title: item.title, quadrant: 'Q2', status: 'todo', progress: 0, date: todayStr(), time: '', todayTop: false, createdAt: Date.now(), ...extra })
       return { ...s, inbox: s.inbox.filter(i => i.id !== id), tasks: [...s.tasks, task] }
     }),
 
     // tasks
-    addTask: (task) => setState(s => ({ ...s, tasks: [{ id: uid('t'), status: 'todo', progress: 0, quadrant: 'Q2', time: '', todayTop: false, note: '', createdAt: Date.now(), ...task }, ...s.tasks] })),
-    updateTask: (id, patch) => setState(s => ({ ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, ...patch } : t) })),
+    addTask: (task) => setState(s => ({ ...s, tasks: [normalizeTask({ id: uid('t'), status: 'todo', progress: 0, quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, note: '', createdAt: Date.now(), ...task }), ...s.tasks] })),
+    updateTask: (id, patch) => setState(s => ({ ...s, tasks: s.tasks.map(t => t.id === id ? normalizeTask({ ...t, ...patch }) : t) })),
     removeTask: (id) => setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== id) })),
     completeTask: (id) => setState(s => ({ ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, status: 'done', progress: 100 } : t) })),
     // 圆点单击：已完成 ↔ 待开始（列表、四象限、浮窗共用同一语义）
@@ -322,7 +335,7 @@ export function StoreProvider({ children }) {
     importData: (json) => setState(() => {
       const parsed = JSON.parse(json)
       const base = seedState()
-      return { ...base, ...parsed }
+      return { ...base, ...parsed, tasks: (parsed.tasks || base.tasks).map(normalizeTask) }
     }),
     resetAll: () => setState(seedState()),
   }), [])
@@ -340,7 +353,7 @@ export function StoreProvider({ children }) {
       Q3: tasks.filter(t => t.quadrant === 'Q3' && t.status !== 'done').length,
       Q4: tasks.filter(t => t.quadrant === 'Q4' && t.status !== 'done').length,
     }
-    const topTasks = tasks.filter(t => t.todayTop && t.status !== 'done').slice(0, 3)
+    const topTasks = tasks.filter(t => t.todayTop && t.status !== 'done' && canBeTodayTop(t)).slice(0, 3)
     const todayFocus = state.focus.sessions.filter(s => s.date === todayStr())
     const focusMinutes = todayFocus.reduce((a, s) => a + s.minutes, 0)
     const focusHours = Math.round((focusMinutes / 60) * 10) / 10

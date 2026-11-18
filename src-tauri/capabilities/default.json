@@ -1,0 +1,23 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "主窗口与浮窗的默认权限集",
+  "windows": [
+    "main",
+    "mini"
+  ],
+  "permissions": [
+    "core:default",
+    "core:webview:allow-create-webview-window",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-size",
+    "core:window:allow-set-position",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-theme",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-current-monitor",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-close"
+  ]
+}

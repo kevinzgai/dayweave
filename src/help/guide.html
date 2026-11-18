@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>织日 DayWeave · 使用手册</title>
+<style>
+  /* 默认配色与主应用一致；打开手册时由 HelpPage 按当前主题注入覆盖 */
+  :root{
+    --brand-500:#3B7DF6; --brand-600:#2C66D8; --brand-700:#2354B8; --brand-100:#E4EEFE;
+    --indigo:var(--brand-500); --indigo-deep:var(--brand-600); --indigo-soft:var(--brand-100);
+    --ink:#1C2433; --ink-2:#5A6478; --ink-3:#8D97A9;
+    --line:#E8ECF3; --line-strong:#D5DCE7; --bg:#F8FAFD; --surface:#fff;
+    --green:#1FA97A; --amber:#E39A2B; --rose:#E2566F;
+    --accent-soft:rgba(242,193,78,.2); --accent-ink:#82600F;
+    --hero-grad:linear-gradient(120deg,#E7F0FF 0%,#F5F8FF 48%,#FDF3DA 100%);
+    --on-brand:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink); background:var(--bg); font-size:13.5px; line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  .gh-shell{display:flex;height:100vh;overflow:hidden}
+
+  /* ---------- 目录侧栏 ---------- */
+  .gh-toc{
+    width:230px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+    padding:20px 14px 30px;overflow-y:auto;
+  }
+  .gh-toc-title{font-size:11px;font-weight:800;letter-spacing:1.2px;color:var(--ink-3);padding:0 8px 10px}
+  .gh-search{
+    display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);
+    border-radius:8px;padding:6px 9px;margin-bottom:14px;
+  }
+  .gh-search input{border:none;outline:none;background:transparent;font-size:12px;width:100%;color:var(--ink);font-family:inherit}
+  .gh-search svg{flex-shrink:0;color:var(--ink-3)}
+  .gh-toc a{
+    display:block;padding:6px 9px;border-radius:7px;color:var(--ink-2);
+    text-decoration:none;font-size:12.5px;transition:.14s;
+  }
+  .gh-toc a:hover{background:var(--bg);color:var(--ink)}
+  .gh-toc a.active{background:var(--indigo-soft);color:var(--indigo-deep);font-weight:700}
+  .gh-toc a.sub{padding-left:20px;font-size:12px;color:var(--ink-3)}
+  .gh-toc a.sub:hover{color:var(--ink-2)}
+  .gh-toc-group{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--ink-3);padding:14px 9px 5px}
+  .gh-empty{display:none;padding:10px 9px;font-size:12px;color:var(--ink-3)}
+
+  /* ---------- 正文 ---------- */
+  .gh-main{flex:1;overflow-y:auto;padding:34px 44px 90px}
+  .gh-doc{max-width:760px;margin:0 auto}
+  .gh-head{margin-bottom:26px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+  .gh-badge{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:1.4px;color:var(--indigo-deep);background:var(--indigo-soft);padding:3px 10px;border-radius:20px;margin-bottom:12px}
+  .gh-head h1{font-size:25px;font-weight:800;letter-spacing:-.6px;line-height:1.35}
+  .gh-head p{color:var(--ink-2);margin-top:9px;font-size:13px}
+  .gh-meta{margin-top:14px;display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
+
+  h2{font-size:17px;font-weight:800;letter-spacing:-.3px;margin:38px 0 12px;padding-left:11px;border-left:3px solid var(--indigo);line-height:1.4}
+  h2:first-of-type{margin-top:0}
+  h3{font-size:14px;font-weight:800;margin:24px 0 8px;color:var(--ink)}
+  h3 .num{color:var(--indigo);margin-right:7px;font-variant-numeric:tabular-nums}
+  p{color:var(--ink-2);margin:8px 0}
+  ul,ol{margin:8px 0 8px 20px;color:var(--ink-2)}
+  li{margin:4px 0}
+  strong{color:var(--ink);font-weight:700}
+  code{background:var(--bg);border-radius:5px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--brand-600)}
+
+  kbd{
+    display:inline-block;background:var(--surface);border:1px solid var(--line-strong);border-bottom-width:2px;
+    border-radius:5px;padding:0 6px;font-size:11.5px;font-family:inherit;color:var(--ink);
+    line-height:18px;box-shadow:0 1px 0 rgba(30,34,51,.04);
+  }
+
+  .gh-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .gh-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+  .gh-grid .gh-card{margin:0}
+  .gh-card h4{font-size:12.5px;font-weight:800;margin-bottom:5px}
+  .gh-card p{font-size:12.5px;margin:0}
+  .gh-card .ico{font-size:15px;margin-right:6px}
+
+  .gh-tip,.gh-warn{border-radius:10px;padding:12px 15px;margin:14px 0;font-size:12.5px;line-height:1.7}
+  .gh-tip{background:var(--indigo-soft);border-left:3px solid var(--indigo);color:var(--indigo-deep)}
+  .gh-warn{background:var(--accent-soft);border-left:3px solid var(--amber);color:var(--accent-ink)}
+
+  .gh-steps{counter-reset:step;list-style:none;margin:14px 0;padding:0}
+  .gh-steps li{counter-increment:step;position:relative;padding-left:34px;margin:12px 0;color:var(--ink-2)}
+  .gh-steps li::before{
+    content:counter(step);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;
+    background:var(--indigo);color:var(--on-brand);font-size:11px;font-weight:800;display:grid;place-items:center;
+  }
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:12.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;font-weight:800;color:var(--ink-3);background:var(--bg);letter-spacing:.3px}
+  td:nth-child(2){color:var(--ink-2)}
+  tr:last-child td{border-bottom:none}
+  .gh-table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+
+  .gh-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0;font-size:12px;color:var(--ink-3)}
+  .gh-flow b{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 11px;color:var(--ink);font-weight:600}
+  .gh-flow span{color:var(--line-strong)}
+
+  .gh-quote{
+    border-radius:12px;padding:16px 20px;margin:16px 0;
+    background:var(--hero-grad);
+    font-size:12.5px;color:var(--indigo-deep);font-weight:600;
+  }
+
+  .gh-foot{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  .gh-printbar{display:none}
+
+  @media (max-width:820px){
+    .gh-toc{display:none}
+    .gh-main{padding:24px 20px 70px}
+    .gh-grid{grid-template-columns:1fr}
+  }
+
+  @media print{
+    html,body{height:auto;background:#fff}
+    .gh-shell{display:block;height:auto;overflow:visible}
+    .gh-toc{display:none}
+    .gh-main{overflow:visible;padding:0;height:auto}
+    .gh-doc{max-width:none}
+    h2{break-after:avoid;margin-top:26px}
+    .gh-card,.gh-table-wrap{break-inside:avoid}
+    .gh-printbar{display:block;font-size:11px;color:#888;margin-bottom:14px}
+  }
+</style>
+</head>
+<body>
+<div class="gh-shell">
+
+  <aside class="gh-toc" id="toc">
+    <div class="gh-toc-title">使用手册 · 目录</div>
+    <div class="gh-search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="搜索章节…" autocomplete="off" />
+    </div>
+    <div id="tocList">
+      <div class="gh-toc-group">入门</div>
+      <a href="#intro">关于本手册</a>
+      <a href="#start">快速开始</a>
+      <a href="#ui">界面结构</a>
+      <a href="#theme">外观与配色</a>
+      <a href="#workflow">每日使用流程</a>
+
+      <div class="gh-toc-group">模块详解</div>
+      <a href="#m-dashboard">01 首页驾驶舱</a>
+      <a href="#m-inbox">02 收件箱</a>
+      <a href="#m-tasks">03 任务管理</a>
+      <a href="#m-matrix">04 四象限视图</a>
+      <a href="#m-blocks">05 日程 / 时间块</a>
+      <a href="#m-focus">06 专注计时</a>
+      <a href="#m-projects">07 项目管理</a>
+      <a href="#m-goals">08 目标管理</a>
+      <a href="#m-habits">09 习惯打卡</a>
+      <a href="#m-knowledge">10 知识素材库</a>
+      <a href="#m-experience">11 经验素材库</a>
+      <a href="#m-achievements">12 工作成果</a>
+      <a href="#m-report">13 周报 / 月报</a>
+      <a href="#m-review">14 时间复盘</a>
+      <a href="#m-settings">15 设置中心</a>
+
+      <div class="gh-toc-group">进阶</div>
+      <a href="#mini">浮窗卡片与贴边收起</a>
+      <a href="#method">方法论：四步闭环</a>
+      <a href="#shortcuts">快捷键与效率技巧</a>
+      <a href="#data">数据存储与备份</a>
+      <a href="#faq">常见问题</a>
+      <a href="#version">版本与致谢</a>
+    </div>
+    <div class="gh-empty" id="tocEmpty">没有匹配的章节</div>
+  </aside>
+
+  <main class="gh-main" id="main">
+    <article class="gh-doc">
+      <div class="gh-printbar">织日 DayWeave · 使用手册 v1.2 · 打印副本</div>
+
+      <header class="gh-head">
+        <div class="gh-badge">DAYWEAVE · 使用手册</div>
+        <h1>把时间和念头，织成每一天</h1>
+        <p>这是一份完整操作说明：从第一次打开应用，到把「捕捉 → 排程 → 专注 → 复盘」跑成日常习惯。全部功能均可离线使用，数据只存在你自己的电脑上。</p>
+        <div class="gh-meta">
+          <span>版本 1.3.1</span><span>适用平台 Windows</span><span>离线 · 无需登录</span>
+        </div>
+      </header>
+
+      <h2 id="intro">关于本手册</h2>
+      <p>手册按「入门 → 模块 → 进阶」三段组织。第一次使用，建议先读<a href="#start">快速开始</a>和<a href="#workflow">每日使用流程</a>，十分钟就能把主流程跑通；之后遇到具体功能，再来查对应模块章节。</p>
+      <div class="gh-tip">左侧目录支持搜索。在搜索框输入关键词（例如「复盘」「打卡」「备份」），目录会实时过滤；点击任意条目即可跳到对应章节。</div>
+
+      <h2 id="start">快速开始</h2>
+      <h3><span class="num">A</span>安装与启动</h3>
+      <ol class="gh-steps">
+        <li><strong>安装</strong>：双击 <code>DayWeave_1.3.1_x64_en-US.msi</code>，按提示完成安装；或直接运行免安装版 <code>dayweave.exe</code>。</li>
+        <li><strong>打开</strong>：从开始菜单或桌面图标启动，窗口标题为「织日 · DayWeave」。</li>
+        <li><strong>先别急着录入</strong>：首次启动自带一组演示数据，方便你熟悉界面；确认要正式开始后，去「设置中心 → 重置全部数据」清空即可。</li>
+      </ol>
+      <div class="gh-tip">系统要求：Windows 10 / 11。个别精简版系统若提示缺少 WebView2 运行时，安装微软官方 WebView2 Runtime 后即可正常启动（装一次，之后不再需要）。</div>
+
+      <h3><span class="num">B</span>三分钟跑通主流程</h3>
+      <ol class="gh-steps">
+        <li>打开 <strong>收件箱</strong>，把脑子里盘旋的三件事敲进去，回车捕捉。</li>
+        <li>逐条点 <strong>转任务</strong>，把它们变成正式任务。</li>
+        <li>打开 <strong>任务管理</strong>，给今天必须推进的 2–3 件任务勾上 ★ 今日要事，并设置四象限。</li>
+        <li>去 <strong>日程 / 时间块</strong>，为这几件事预留具体时段。</li>
+        <li>到 <strong>专注计时</strong>，选 25 分钟，开干。</li>
+        <li>睡前打开 <strong>时间复盘</strong>，回答四个问题并保存。</li>
+      </ol>
+      <div class="gh-flow"><b>捕捉</b><span>→</span><b>转任务</b><span>→</span><b>定要事</b><span>→</span><b>排时间块</b><span>→</span><b>专注执行</b><span>→</span><b>复盘沉淀</b></div>
+
+      <h2 id="ui">界面结构</h2>
+      <p>整个应用由三块组成，固定不变：</p>
+      <div class="gh-grid">
+        <div class="gh-card"><h4><span class="ico">▤</span>左侧导航栏</h4><p>深色区域，15 个功能入口分四组：工作台、效率、知识、复盘。底部是当日励志语。收件箱有待处理条目时，入口右侧会显示数字角标。</p></div>
+        <div class="gh-card"><h4><span class="ico">▥</span>顶部信息栏</h4><p>显示当前模块名称、日期与星期、今日任务完成度，最右侧是昵称头像。窗口可自由缩放，内容区会自适应。</p></div>
+      </div>
+      <div class="gh-card"><h4><span class="ico">▦</span>主内容区</h4><p>各模块的具体内容。面板之间留白分隔，不使用重边框；所有改动即时生效并自动保存，<strong>没有「保存整个页面」的概念</strong>——只有表单类操作（复盘、设置里的昵称）需要点各自的保存按钮。</p></div>
+
+      <h3><span class="num">+</span>新增记录：一律用弹窗</h3>
+      <p>任务、时间块、项目、目标、习惯、知识素材、经验、工作成果的「新增」都在<strong>弹窗</strong>里完成，页面本身不会被表单撑开或挤动。三个通用操作：</p>
+      <ul>
+        <li>弹窗底部固定「取消 / 保存」两个按钮，样式与应用全局一致；点「取消」放弃本次编辑，未保存的内容不会写入。</li>
+        <li>长表单在弹窗内部滚动，保存 / 取消按钮始终在底部，不会顶出视野。</li>
+        <li>窗口宽度小于 900px 时，左侧导航收成抽屉，点左上角菜单按钮展开；弹窗改为从底部滑出的全宽面板，适合触屏操作。</li>
+      </ul>
+      <div class="gh-tip">弹窗与确认框采用「显式操作」设计：不依赖 <kbd>Esc</kbd> 或点遮罩关闭，必须通过「取消 / 保存 / 删除」等按钮完成，避免误触丢数据。</div>
+
+      <h2 id="theme">外观与配色</h2>
+      <p>界面默认复刻参考稿的配色：<strong>深藏蓝侧栏 + 暖黄高亮条 + 亮蓝进度</strong>，主内容区浅灰底配白色卡片。在这套骨架上另备了 5 套配色方案，随时可换：</p>
+      <div class="gh-table-wrap">
+        <table>
+          <tr><th>方案</th><th>风格</th><th>适合场景</th></tr>
+          <tr><td>藏蓝暖阳</td><td>深藏蓝侧栏 · 亮蓝 #3B7DF6 · 暖黄 #F2C14E（默认，复刻参考图）</td><td>白天办公，信息层级最清晰</td></tr>
+          <tr><td>樱粉晨光</td><td>深玫瑰侧栏 · 玫瑰粉 #E45C8C · 奶油金</td><td>偏柔和的个人使用场景</td></tr>
+          <tr><td>薄荷青竹</td><td>墨绿侧栏 · 竹青 #16A97F · 沙金</td><td>长时间盯屏、需要冷静的深度工作</td></tr>
+          <tr><td>紫罗兰暮光</td><td>深紫侧栏 · 暮紫 #7B61E8 · 落日金</td><td>创作、学习，氛围感强</td></tr>
+          <tr><td>石墨暗夜</td><td>深色模式 · 星蓝 #6C7BEF · 暖黄 #F0C464</td><td>夜间、暗光环境</td></tr>
+        </table>
+      </div>
+      <h3><span class="num">1</span>两种切换方式</h3>
+      <ul>
+        <li>顶栏 <strong>调色板按钮</strong>：点一下弹出方案列表，选中即生效，<kbd>Esc</kbd> 或点空白处收起。</li>
+        <li><strong>设置中心 → 外观主题</strong>：5 张带缩略预览的卡片，选中项有勾选与描边，便于对比后再决定。</li>
+      </ul>
+      <h3><span class="num">2</span>生效范围</h3>
+      <ul>
+        <li>切换是<strong>即时</strong>的：侧栏、卡片、按钮、进度条、标签、图表、弹窗同步变色，不需要刷新。</li>
+        <li>浮窗卡片与主窗口共用同一份设置，浮窗会一起换色。</li>
+        <li>选择会写入本机存储，下次启动直接沿用；首帧前就套用，不会先闪一下默认配色。</li>
+        <li>内置手册也会跟着当前主题调整配色。</li>
+      </ul>
+      <div class="gh-tip">配色只影响观感，不影响数据。换主题后任务、时间块、专注记录、复盘内容全部原样保留。</div>
+
+      <h2 id="workflow">每日使用流程</h2>
+      <h3><span class="num">早</span>5 分钟做规划</h3>
+      <ul>
+        <li>清空收件箱：新条目要么转任务，要么直接删掉。</li>
+        <li>在任务里确认今天最重要的 3 件事（★ 标记），其余任务按四象限排队。</li>
+        <li>为 3 件要事各安排一个时间块，尤其是「重要不紧急」的那件——它最容易被挤掉。</li>
+      </ul>
+      <h3><span class="num">日间</span>按块执行</h3>
+      <ul>
+        <li>进入某个时间块时，打开专注计时，输入这一轮要做什么，选好时长后开始。</li>
+        <li>把浮窗开起来，倒计时和进行中的任务会一直贴在屏幕边上。</li>
+        <li>块结束后回到时间块页面，点状态标签切成「已完成」。</li>
+        <li>临时冒出来的事，不要打断当前专注，先丢进收件箱。</li>
+      </ul>
+      <h3><span class="num">晚</span>10 分钟复盘</h3>
+      <ul>
+        <li>写今日复盘四问，顺手把有价值的内容沉淀到经验素材库。</li>
+        <li>看周报页面确认这周的专注时长和成果数量。</li>
+        <li>勾掉今天完成的习惯打卡，给项目进度条拖一下。</li>
+      </ul>
+      <div class="gh-quote">每天只做三件真正重要的事，一年就是一千件。</div>
+
+      <h2 id="m-dashboard">01 首页驾驶舱</h2>
+      <p>驾驶舱不做录入，只做聚合展示：把各模块当天数据汇总到一屏，让你一眼看清「今天进展如何」。</p>
+      <div class="gh-table-wrap">
+        <table>
+          <tr><th style="width:34%">区块</th><th>说明</th></tr>
+          <tr><td>今日完成度</td><td>按已完成任务数 / 任务总数计算，顶部横幅与右上角胶囊同步显示。</td></tr>
+          <tr><td>任务统计四格</td><td>今日任务、已完成、进行中、待完成。</td></tr>
+          <tr><td>今天最重要的 3 件事</td><td>显示带 ★ 且未完成的任务，点左侧圆圈可直接完成；没有则提示去任务页添加。</td></tr>
+          <tr><td>四象限 · 任务分布</td><td>四个象限各有多少未完成任务，点击任意格跳到四象限视图。</td></tr>
+          <tr><td>今日时间块安排</td><td>按时间顺序列出全部时间块与状态，颜色点对应当前进度。</td></tr>
+          <tr><td>今日专注统计</td><td>专注块数、累计时长、目标达成率；右上「开始专注」直达计时器。</td></tr>
+          <tr><td>今日提醒</td><td>根据收件箱积压、逾期任务、专注进度自动生成的提示，无需手工维护。</td></tr>
+          <tr><td>底部四卡</td><td>项目进度、习惯打卡（可直接勾选）、今日工作成果、今日复盘入口。</td></tr>
+        </table>
+      </div>
+
+      <h2 id="m-inbox">02 收件箱</h2>
+      <p>收件箱是「只进不出」的缓冲区，唯一目的是让你在专注时不被杂念打断。</p>
+      <ol class="gh-steps">
+        <li>在输入框写下任意想法，按 <kbd>Enter</kbd> 或点「捕捉」。</li>
+        <li>处理阶段逐条决定：点 <strong>转任务</strong>（自动落入「重要不紧急」象限，可在任务页再调整），或点垃圾桶删除。</li>
+      </ol>
+      <div class="gh-tip">收件箱的目标是<strong>当天清零</strong>。积压超过 10 条，说明需要一次集中整理（建议每天固定在早上或下班前）。</div>
+
+      <h2 id="m-tasks">03 任务管理</h2>
+      <p>任务管理分为「列表」和「四象限」两个视图，右上角新建任务。</p>
+      <h3><span class="num">1</span>新建任务</h3>
+      <p>填写标题、四象限、时间（可选），可勾选「标记为今日最重要的 3 件事」。保存后任务出现在列表顶部。</p>
+      <h3><span class="num">2</span>状态流转</h3>
+      <p>点击任务左侧圆圈，状态按 <strong>待开始 → 进行中 → 已完成 → 待开始</strong> 循环切换。切到已完成时进度自动变 100%，切回待开始归 0%。</p>
+      <h3><span class="num">3</span>筛选与删除</h3>
+      <p>顶部标签页可按全部 / 待开始 / 进行中 / 已完成筛选，右侧显示当前数量。每行末尾的垃圾桶图标直接删除任务（不可恢复，谨慎点击）。</p>
+      <h3><span class="num">4</span>编辑任务</h3>
+      <p>任务列表不再放独立「编辑」按钮，改成更直接的方式：</p>
+      <ul>
+        <li><strong>单击左侧状态圆点</strong>：直接打开编辑弹窗（圆点本身不再是切换状态的开关）。</li>
+        <li><strong>双击任务名称</strong>：也可打开编辑弹窗。</li>
+        <li><strong>右键任务行</strong>：弹出快捷菜单，包含编辑、标记为已完成 / 进行中、复制、删除。</li>
+      </ul>
+      <p>状态切换（待开始 → 进行中 → 已完成）在编辑弹窗内完成，或用右键菜单的「标记为…」一步到位。删除依旧在编辑弹窗底部或右键菜单中操作，均有二次确认。</p>
+      <p>任务保存后不是「一次性」的：单击任务左侧的状态圆点、双击任务名称，或在四象限视图里双击任务，都能打开编辑弹窗；右键任务行还有「标记为已完成 / 进行中」「复制」「删除」等快捷操作。</p>
+      <ul>
+        <li><strong>可改内容</strong>：标题、备注、四象限、状态、时间、进度（0–100% 滑杆）、是否标为今日要事。</li>
+        <li><strong>备注</strong>：写验收标准、上下文或链接，不占列表视觉空间，只在该弹窗内查看。</li>
+        <li><strong>状态与进度联动</strong>：状态改成「已完成」进度自动 100%，改成「待开始」归 0，进行中保留原进度。</li>
+        <li><strong>删除</strong>：弹窗左下角，删除前会二次确认。</li>
+      </ul>
+      <div class="gh-tip">需要批量整理时，用「四象限」视图：点标题改优先级与时间，比在长列表里找更直观。</div>
+
+      <h2 id="m-matrix">04 四象限视图</h2>
+      <p>按「重要 × 紧急」把未完成任务分到四格，点击左侧导航「优先级 / 四象限」或任务页顶部标签进入。</p>
+      <div class="gh-table-wrap">
+        <table>
+          <tr><th>象限</th><th>含义与建议</th></tr>
+          <tr><td>重要且紧急</td><td>立即做。这类任务应当尽量少，长期偏多说明在救火。</td></tr>
+          <tr><td>重要不紧急</td><td>计划做。真正产生长期价值的区域，务必用时间块锁住。</td></tr>
+          <tr><td>不重要但紧急</td><td>委托或压缩处理，别让它吃掉大块时间。</td></tr>
+          <tr><td>不重要不紧急</td><td>尽量少做，可直接删除。</td></tr>
+        </table>
+      </div>
+      <div class="gh-tip">每格右上角显示该象限未完成任务数。若「重要不紧急」长期是 0，而「重要且紧急」爆满，就该重新规划日程了。</div>
+
+      <h2 id="m-blocks">05 日程 / 时间块</h2>
+      <p>时间块是把「计划」落到具体时段的工具。顶部四格统计时间块总数、规划时长、已完成数、实际专注时长。</p>
+      <ol class="gh-steps">
+        <li>点「新增时间块」，填写安排内容、开始与结束时间，选一个图标（太阳=晨间、大脑=深度工作、靶心=目标推进、咖啡=休息、人群=会议、发送=交付、循环=复盘）。</li>
+        <li>列表按开始时间自动排序。</li>
+        <li>执行完一段，点右侧状态标签循环切换 <strong>待开始 → 进行中 → 已完成</strong>。</li>
+      </ol>
+      <div class="gh-tip">建议每天只安排 4–6 个时间块，并留出 20% 空白。排满的日程经不起任何意外，反而全部崩掉。</div>
+
+      <h2 id="m-focus">06 专注计时</h2>
+      <p>番茄钟式计时器，四档预设：25 / 45 / 60 / 90 分钟。</p>
+      <ol class="gh-steps">
+        <li>在输入框写下「这一轮专注做什么」，方便事后回顾专注去向。</li>
+        <li>选择预设时长，点「开始专注」。</li>
+        <li>中途需要中断可点「暂停」，回来继续；点「重置」回到完整时长且不记录。</li>
+        <li>提前完成点「完成」，按实际已过分钟记录（最少 1 分钟）；正常倒计时结束则记录完整时长。</li>
+      </ol>
+      <p>右侧「今日专注概览」显示专注块数、累计时长与目标达成率，可直接切换 2 / 3 / 4 / 6 小时目标；下方「今日专注记录」列出每一轮的时长与主题。</p>
+      <div class="gh-warn">计时基于页面运行，关闭应用会中断当前一轮。建议不要在专注中途退出程序。</div>
+
+      <h2 id="m-projects">07 项目管理</h2>
+      <p>管理跨天、跨周的中长期事项。新建时填写名称、简介、截止日期与颜色标识。</p>
+      <ul>
+        <li>每张卡片拖动 <strong>进度条</strong> 即可更新完成百分比，顶部统计实时刷新（总数、已完成、进行中、平均进度）。</li>
+        <li>进度 100% 时计入「已完成」。</li>
+        <li>驾驶舱「项目进度」卡片同步展示。</li>
+      </ul>
+
+      <h2 id="m-goals">08 目标管理</h2>
+      <p>按分类（事业 / 学习 / 健康 / 财务 / 生活）管理可量化目标，新建时设定目标值、单位与截止日期。</p>
+      <ul>
+        <li>点 <strong>+ / −</strong> 按目标值的 5% 为步进调整当前进展（至少 1 个单位），完成度自动换算成进度条。</li>
+        <li>目标值达到即 100%，超出的部分不再累加。</li>
+        <li>目标与任务不同：任务是「做什么」，目标是「往哪去」。</li>
+      </ul>
+
+      <h2 id="m-habits">09 习惯打卡</h2>
+      <p>管理每天 / 每周重复的小事。新增时填名称、选频率。</p>
+      <ul>
+        <li>点击左侧方块打卡，再点一次取消。当天即可在驾驶舱勾选。</li>
+        <li>每行右侧 7 个色块代表最近 7 天，绿色为已打卡。</li>
+        <li>「连续天数」会自动计算：今天未打卡时从昨天起算，因此不会被误判为断签。</li>
+        <li>顶部统计习惯总数、今日已打卡、最长连续天数、今日完成率。</li>
+      </ul>
+      <div class="gh-tip">一次只新增 1–2 个习惯。同时上十个，通常十个都坚持不下来。</div>
+
+      <h2 id="m-knowledge">10 知识素材库</h2>
+      <p>存放外部获取的、可复用的资料与要点。</p>
+      <ul>
+        <li>点「收录素材」，填标题、内容、标签（逗号分隔，支持中文逗号与空格）。</li>
+        <li>搜索框实时匹配标题、内容与标签；标签栏可点选筛选，再点一次取消。</li>
+        <li>卡片右下角标签可辅助归类的可视化，删除在卡片右上角。</li>
+      </ul>
+
+      <h2 id="m-experience">11 经验素材库</h2>
+      <p>存放自己总结的教训与方法，来源通常是复盘。与知识库的区别：知识来自外部，经验来自自己。</p>
+      <ul>
+        <li>点「记录经验」，填标题、具体经验、标签。</li>
+        <li>建议以「场景 + 做法」的形式写，例如「需求不清晰时，先做可点原型再对齐」。</li>
+      </ul>
+
+      <h2 id="m-achievements">12 工作成果</h2>
+      <p>记录看得见的产出，用于月报、述职或自我激励。</p>
+      <ul>
+        <li>点「记录成果」（或新增），填写标题、补充说明、类型与日期。</li>
+        <li>列表按时间倒序展示；周报 / 月报中的「成果记录」实时统计数量。</li>
+      </ul>
+
+      <h2 id="m-report">13 周报 / 月报</h2>
+      <p>周期统计页，顶部切换 <strong>本周 / 本月 / 近 7 天 / 近 30 天</strong>，右侧显示该区间的起止日期。</p>
+      <div class="gh-table-wrap">
+        <table>
+          <tr><th style="width:34%">区块</th><th>含义</th></tr>
+          <tr><td>四格统计</td><td>区间内专注时长、专注次数、复盘篇数、成果记录数。</td></tr>
+          <tr><td>每日专注分布</td><td>柱状图，柱高对应当天专注分钟数，无记录为浅灰空柱。</td></tr>
+          <tr><td>周期小结</td><td>有专注记录的天数、平均单日专注、任务完成率、习惯今日完成。</td></tr>
+          <tr><td>复盘摘录</td><td>区间内最近 5 篇复盘的最大成果摘要。</td></tr>
+        </table>
+      </div>
+      <div class="gh-tip">每周固定看一次「有专注记录的天数」，它比总时长更能反映节奏稳不稳。</div>
+
+      <h2 id="m-review">14 时间复盘</h2>
+      <p>每天四个问题，写完点「保存复盘」，内容存入本地并出现在历史列表中。</p>
+      <ol class="gh-steps">
+        <li>今天完成了什么？——对照早上的 3 件要事看命中率。</li>
+        <li>最大的成果 / 收获是什么？——哪怕很小也记下来。</li>
+        <li>时间主要花在哪了？有什么可以优化？——结合专注记录，诚实面对分心。</li>
+        <li>明天最重要的 3 件事？——现在定好，明早直接开干。</li>
+      </ol>
+      <p>同一天可以多次编辑，保存会覆盖当天内容；历史复盘按日期倒序列在右侧。周报会读取这些内容作为摘录。</p>
+
+      <h2 id="m-settings">15 设置中心</h2>
+      <ul>
+        <li><strong>个人资料</strong>：昵称（显示为右上角头像首字母）与个人宣言（显示在驾驶舱横幅），改完点保存。</li>
+        <li><strong>专注目标</strong>：每日专注时长目标，可选 2 / 3 / 4 / 6 / 8 小时，影响达成率与专注页进度。</li>
+        <li><strong>数据管理</strong>：导出数据备份（JSON 文件）、导入数据、重置全部数据。</li>
+        <li><strong>关于</strong>：查看版本与运行方式。</li>
+      </ul>
+
+      <h2 id="mini">浮窗卡片与贴边收起</h2>
+      <p>浮窗解决一个具体问题：干活时不想一直盯着主窗口，又不想忘记手上这件事。点顶栏的「浮窗」按钮开启。</p>
+      <h3><span class="num">1</span>两种形态</h3>
+      <ul>
+        <li><strong>桌面浮窗（Windows 安装版）</strong>：独立无边框窗口，始终置顶、不占任务栏，可拖到屏幕任意角落；主窗口最小化后它依然可见。</li>
+        <li><strong>应用内浮层（浏览器 / 网页预览）</strong>：贴在主窗口右下角的卡片，可用顶部标题栏拖动位置。</li>
+      </ul>
+      <h3><span class="num">2</span>卡片里能做什么</h3>
+      <ul>
+        <li>看到专注倒计时与当前专注主题，随时开始或暂停。</li>
+        <li>列出「进行中」任务与今日要事，点左侧方框直接完成。</li>
+        <li>点任务右侧的计时图标，立刻以该任务开启一轮专注。</li>
+      </ul>
+      <h3><span class="num">3</span>贴边收起</h3>
+      <p>点卡片右上角的图钉，浮窗会缩成屏幕右边缘的一条窄签，只显示倒计时和任务数；点窄签随时展开。桌面浮窗收起时窗口本身会缩成一个小方块贴在右侧，不遮挡内容。</p>
+      <div class="gh-tip">浮窗与主窗口共用同一份本地数据：在浮窗勾任务、开计时，主窗口立即同步，反之亦然，无需刷新页面。</div>
+
+      <h2 id="method">方法论：四步闭环</h2>
+      <p>工具只是外壳，真正起作用的是循环。建议按下面四步走，一周后再调参数。</p>
+      <h3><span class="num">1</span>捕捉 — 降低记录成本</h3>
+      <p>任何念头先丢进收件箱，不判断、不分类。判断留到专门的处理时间，避免在专注中途切碎注意力。</p>
+      <h3><span class="num">2</span>排程 — 给重要的事留位置</h3>
+      <p>先选 3 件要事，再排时间块，而不是把任务填满全天。四象限里的「重要不紧急」必须占住一整块时间，否则永远排不上。</p>
+      <h3><span class="num">3</span>专注 — 一次只做一件事</h3>
+      <p>一个时间块只对应一个明确产出。计时器的作用不是计时，而是让你无法同时开三件事。</p>
+      <h3><span class="num">4</span>复盘 — 把经验变成资产</h3>
+      <p>每天 10 分钟记录，每周看一次报表。复盘的关键是找出「明天要改的一件事」，不是写检讨。</p>
+      <div class="gh-quote">计划不是保证不被打断，而是被打断后知道该回到哪。</div>
+
+      <h2 id="shortcuts">快捷键与效率技巧</h2>
+      <div class="gh-table-wrap">
+        <table>
+          <tr><th style="width:36%">操作</th><th>说明</th></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>打开命令面板：输入模块名直接跳转，或输入任意文字回车，一键记入收件箱。</td></tr>
+          <tr><td>顶栏「浮窗」</td><td>打开桌面浮窗卡片（浏览器环境为应用内浮层），随时查看进行中任务与倒计时。</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd> 后 <kbd>↑</kbd> <kbd>↓</kbd></td><td>在结果列表上下移动。</td></tr>
+          <tr><td><kbd>Enter</kbd></td><td>执行当前选中项。</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>关闭命令面板。</td></tr>
+          <tr><td><kbd>Tab</kbd></td><td>在表单字段之间切换，配合 <kbd>Enter</kbd> 可全键盘录入。</td></tr>
+        </table>
+      </div>
+      <div class="gh-tip">命令面板是最快的入口：想到一件事，<kbd>Ctrl</kbd> + <kbd>K</kbd> 敲完回车就进了收件箱，不打断当前工作。</div>
+      <h3>其他技巧</h3>
+      <ul>
+        <li>驾驶舱的习惯卡片可以直接勾选，不必跳到习惯页。</li>
+        <li>所有改动自动保存，随时可以关窗；只有复盘表单和设置里的资料需要点保存。</li>
+        <li>窗口缩小到 1120px 以下时，多列布局会自动变成单列，笔记本小屏也够用。</li>
+      </ul>
+
+      <h2 id="data">数据存储与备份</h2>
+      <p>应用完全离线运行，所有数据保存在本机 WebView 的本地存储（localStorage）中，不联网、不上传、无账号。</p>
+      <ul>
+        <li><strong>备份</strong>：设置中心 → 导出数据备份，生成 <code>dayweave-backup-日期.json</code>。</li>
+        <li><strong>恢复 / 换机</strong>：设置中心 → 导入数据，选择之前导出的 JSON 文件，导入后立即生效。</li>
+        <li><strong>重置</strong>：设置中心 → 重置全部数据，恢复为演示数据（不可撤销，建议先导出）。</li>
+      </ul>
+      <div class="gh-warn">卸载应用、清理系统缓存或重置浏览器组件，都可能清除本地数据。养成每月导出一次备份的习惯；重要节点（例如年终复盘前）单独导出一份。</div>
+
+      <h2 id="faq">常见问题</h2>
+      <h3>安装时产品名显示为 DayWeave，正常吗？</h3>
+      <p>正常。Windows 安装包（WiX）不支持中文产品名，因此安装程序内部标识使用英文 DayWeave；应用窗口标题和界面以中文名「织日」为主，不影响使用。</p>
+
+      <h3>启动时提示缺少 WebView2 运行时怎么办？</h3>
+      <p>安装微软官方的 Microsoft Edge WebView2 Runtime 即可，装一次长期有效。Win10 / 11 绝大多数系统已内置。</p>
+
+      <h3>数据会丢吗？换了电脑怎么迁移？</h3>
+      <p>数据只在本机，卸载或清理缓存可能丢失。迁移方式：旧机导出 JSON → 新机安装应用 → 导入 JSON。</p>
+
+      <h3>专注计时关掉窗口会怎样？</h3>
+      <p>切换页面、开关浮窗都不会中断计时——计时器挂在应用全局。关闭整个应用会停止计时；重新打开时若倒计时已过，会自动补记一条专注记录。</p>
+
+      <h3>浮窗点不出来或看不见？</h3>
+      <p>先确认顶栏「浮窗」按钮已点击；桌面浮窗默认置顶且不占任务栏，若被其他置顶软件（如投屏、会议）遮住，从任务栏关闭那个软件即可。浮窗被拖到屏幕外时，关掉浮窗重新打开会回到默认位置。</p>
+
+      <h3>浮窗和主窗口的数据是同一份吗？</h3>
+      <p>是。两个窗口共用本机同一份本地存储，改动实时双向同步，不需要刷新。</p>
+
+      <h3>演示数据怎么清空？</h3>
+      <p>设置中心 → 重置全部数据。注意重置会同时清掉你自己录入的内容，请先导出备份。</p>
+
+      <h3>为什么「今日完成度」和任务页数量不一致？</h3>
+      <p>完成度按全部任务计算（含非今日任务），是全局快照；任务页的筛选标签只统计当前筛选结果。</p>
+
+      <h3>任务进度百分比能手动改吗？</h3>
+      <p>能。单击任务左侧的状态圆点（或双击任务名称）打开编辑弹窗，里面有 0–100% 的进度滑杆；状态切到「已完成」时进度自动补满，切到「待开始」自动归零。项目进度则可以直接在卡片上拖动进度条。</p>
+
+      <h2 id="version">版本与致谢</h2>
+      <p><strong>织日 DayWeave 1.3.1</strong> · Tauri 2 + React 18 · 本地离线运行 · 无后端依赖。</p>
+      <p>设计目标只有一条：让「想清楚今天要做什么」这件事，花不超过五分钟。祝你用得顺手。</p>
+
+      <div class="gh-foot">
+        <span>织日 DayWeave · 使用手册 v1.1</span>
+        <span>按 Ctrl+P 可打印或另存为 PDF</span>
+      </div>
+    </article>
+  </main>
+</div>
+
+<script>
+(function () {
+  var input = document.getElementById('q');
+  var links = Array.prototype.slice.call(document.querySelectorAll('#tocList a'));
+  var groups = Array.prototype.slice.call(document.querySelectorAll('#tocList .gh-toc-group'));
+  var empty = document.getElementById('tocEmpty');
+  var main = document.getElementById('main');
+
+  // 建立「目录项 → 章节文本」索引，便于全文搜索
+  var index = links.map(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    var text = el ? (a.textContent + ' ' + el.textContent).toLowerCase() : a.textContent.toLowerCase();
+    return { a: a, text: text, el: el };
+  });
+
+  function filter() {
+    var q = (input.value || '').trim().toLowerCase();
+    if (!q) {
+      index.forEach(function (it) { it.a.style.display = ''; });
+      groups.forEach(function (g) { g.style.display = ''; });
+      empty.style.display = 'none';
+      return;
+    }
+    var shown = 0;
+    index.forEach(function (it) {
+      var hit = it.text.indexOf(q) > -1;
+      it.a.style.display = hit ? '' : 'none';
+      if (hit) shown++;
+    });
+    // 分组标题：整组无结果时隐藏
+    groups.forEach(function (g) {
+      var next = g.nextElementSibling, any = false;
+      while (next && !next.classList.contains('gh-toc-group')) {
+        if (next.style.display !== 'none') { any = true; break; }
+        next = next.nextElementSibling;
+      }
+      g.style.display = any ? '' : 'none';
+    });
+    empty.style.display = shown ? 'none' : 'block';
+  }
+  input.addEventListener('input', filter);
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { input.value = ''; filter(); input.blur(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      // 让查找落到目录搜索框，避免与浏览器查找冲突时无反馈
+      e.preventDefault(); input.focus(); input.select();
+    }
+  });
+
+  // 点击目录平滑滚动 + 高亮
+  links.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var el = document.getElementById(a.getAttribute('href').slice(1));
+      if (!el) return;
+      main.scrollTo({ top: el.offsetTop - 18, behavior: 'smooth' });
+      links.forEach(function (x) { x.classList.remove('active'); });
+      a.classList.add('active');
+    });
+  });
+
+  // 滚动时自动高亮当前章节
+  var sections = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+  main.addEventListener('scroll', function () {
+    var pos = main.scrollTop + 90, current = -1;
+    sections.forEach(function (el, i) { if (el && el.offsetTop <= pos) current = i; });
+    if (current > -1) {
+      links.forEach(function (x, i) { x.classList.toggle('active', i === current); });
+    }
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

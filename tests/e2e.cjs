@@ -318,6 +318,24 @@ suite('任务增删改', async (s, c) => {
   c('四象限双击标题可编辑', clicked === true && await s.ev(`!!document.querySelector('.modal')`))
   await s.ev(`window.__tm.click('.modal-foot .btn-ghost','取消')`)
   await sleep(200)
+
+  // 拖拽跨象限：Q1 未完成任务 → Q4，store 中 quadrant 应变化
+  const drag = await s.ev(`(()=>{
+    const st = JSON.parse(localStorage.getItem('time-master-state-v1'));
+    const task = st.tasks.find(t => t.quadrant === 'Q1' && t.status !== 'done');
+    if (!task) return null;
+    const row = document.querySelector('.quad-grid [data-task-id="' + task.id + '"]');
+    const card = [...document.querySelectorAll('.quad-grid > *')].find(c => c.textContent.includes('不重要不紧急'));
+    if (!row || !card) return null;
+    const dt = new DataTransfer();
+    const fire = (el, type) => el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
+    fire(row, 'dragstart'); fire(card, 'dragover'); fire(card, 'drop'); fire(row, 'dragend');
+    return task.id;
+  })()`)
+  await sleep(420)
+  st = await s.st()
+  const dragged = st.tasks.find(t => t.id === drag)
+  c('四象限拖拽跨象限生效', !!drag && !!dragged && dragged.quadrant === 'Q4', drag ? dragged.quadrant : '未找到 Q1 任务')
 })
 
 suite('闪念流转', async (s, c) => {

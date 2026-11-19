@@ -363,7 +363,7 @@ function ListView({ tasks, onEdit, onRequestDelete }) {
 /* ---------------------------------- 矩阵视图 ---------------------------------- */
 
 function MatrixView({ tasks, filtered, onEdit, onRequestDelete }) {
-  const { actions } = useStore()
+  const { state, actions } = useStore()
   const [menu, setMenu] = useState(null)
   const [draggingId, setDraggingId] = useState(null)
   const [overQuad, setOverQuad] = useState(null)

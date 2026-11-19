@@ -205,7 +205,7 @@ async function attachTab(port, url) {
 
 const PAGES = [
   ['首页驾驶舱', '时间管理工作台'],
-  ['收件箱', '收件箱'],
+  ['闪念', '闪念'],
   ['任务管理', '任务管理'],
   ['日程 / 时间块', '日程 / 时间块'],
   ['优先级 / 四象限', '任务管理'],
@@ -320,16 +320,16 @@ suite('任务增删改', async (s, c) => {
   await sleep(200)
 })
 
-suite('收件箱流转', async (s, c) => {
+suite('闪念流转', async (s, c) => {
   await s.reset()
-  await s.nav('收件箱')
+  await s.nav('闪念')
   const n0 = (await s.st()).inbox.length
-  c('初始收件箱 3 条', n0 === 3, String(n0))
+  c('初始闪念 3 条', n0 === 3, String(n0))
   await s.ev(`window.__tm.set('.content-inner input.input','自动化捕捉：给客户回电话')`)
   await s.ev(`window.__tm.click('.content-inner .btn-primary','捕捉')`)
   await sleep(360)
   let st = await s.st()
-  c('捕捉进收件箱', st.inbox.length === n0 + 1 && st.inbox.some(i => i.title.includes('给客户回电话')))
+  c('捕捉进闪念', st.inbox.length === n0 + 1 && st.inbox.some(i => i.title.includes('给客户回电话')))
   c('输入框已清空', (await s.ev(`document.querySelector('.content-inner input.input').value`)) === '')
 
   const tasks0 = (await s.st()).tasks.length
@@ -344,21 +344,21 @@ suite('收件箱流转', async (s, c) => {
   await sleep(420)
   st = await s.st()
   c('找到目标行并转任务', conv === true)
-  c('转任务后离开收件箱', st.inbox.length === n0, String(st.inbox.length))
+  c('转任务后离开闪念', st.inbox.length === n0, String(st.inbox.length))
   c('任务列表新增该条', st.tasks.length === tasks0 + 1 && st.tasks.some(t => t.title.includes('给客户回电话')),
     `任务 ${tasks0} → ${st.tasks.length}`)
 
   await s.ev(`window.__tm.click('[aria-label="删除条目"]')`)
   await sleep(320)
   st = await s.st()
-  c('收件箱删除', st.inbox.length === n0 - 1, String(st.inbox.length))
+  c('闪念删除', st.inbox.length === n0 - 1, String(st.inbox.length))
 
   // 空状态
   while ((await s.ev(`window.__tm.count('[aria-label="删除条目"]')`)) > 0) {
     await s.ev(`window.__tm.click('[aria-label="删除条目"]')`)
     await sleep(200)
   }
-  c('收件箱清空显示空状态', (await s.ev(`window.__tm.body()`)).includes('收件箱空了'))
+  c('闪念清空显示空状态', (await s.ev(`window.__tm.body()`)).includes('闪念空了'))
 })
 
 suite('时间块', async (s, c) => {
@@ -619,12 +619,12 @@ suite('命令面板', async (s, c) => {
   await sleep(300)
   await s.ev(`window.__tm.set('.palette-input','压测捕捉条目')`)
   await sleep(300)
-  c('出现「记入收件箱」选项', (await s.ev(`document.querySelector('.palette-item.active .palette-label')?.textContent||''`)).includes('记入收件箱'))
+  c('出现「记入闪念」选项', (await s.ev(`document.querySelector('.palette-item.active .palette-label')?.textContent||''`)).includes('记入闪念'))
   await s.ev(`window.__tm.keyOn(document.querySelector('.palette-input'),'Enter')`)
   await sleep(420)
   const st = await s.st()
-  c('回车快速捕捉到收件箱', st.inbox.some(i => i.title === '压测捕捉条目'))
-  c('捕捉后跳到收件箱页', (await s.ev(`window.__tm.title()`)) === '收件箱')
+  c('回车快速捕捉到闪念', st.inbox.some(i => i.title === '压测捕捉条目'))
+  c('捕捉后跳到闪念页', (await s.ev(`window.__tm.title()`)) === '闪念')
 
   await s.ev(`window.__tm.ctrlK()`)
   await sleep(280)
@@ -886,7 +886,7 @@ suite('空数据边界', async (s, c) => {
   const body = await s.ev(`window.__tm.body()`)
   c('空数据驾驶舱显示 0', body.includes('已完成 0 / 0'))
   c('空数据提示引导文案', body.includes('还没有标记今日要事'))
-  await s.nav('收件箱')
+  await s.nav('闪念')
   await s.ev(`window.__tm.set('.content-inner input.input','空数据下捕捉')`)
   await s.ev(`window.__tm.click('.content-inner .btn-primary','捕捉')`)
   await sleep(360)
@@ -1449,7 +1449,7 @@ suite('交互优化', async (s, c) => {
 
   // ---------- 三、行内删除二次确认 ----------
   const beforeDel = (await s.st()).tasks.length
-  await s.ev(`(() => { const row = (${ROW})('晨间规划 / 收件箱清理'); const b = row && row.querySelector('[title="删除任务"]'); if (!b) return false; b.click(); return true })()`)
+  await s.ev(`(() => { const row = (${ROW})('晨间规划 / 闪念清理'); const b = row && row.querySelector('[title="删除任务"]'); if (!b) return false; b.click(); return true })()`)
   await sleep(340)
   c('行内删除先弹确认框', await s.ev(`[...document.querySelectorAll('.modal')].some(m => (m.textContent || '').includes('此操作不可恢复'))`))
   c('确认框不误开编辑弹窗', (await s.ev(`document.querySelectorAll('.modal').length`)) === 1)
@@ -1457,7 +1457,7 @@ suite('交互优化', async (s, c) => {
   await s.ev(`(() => { const m = [...document.querySelectorAll('.modal')].pop(); const b = [...m.querySelectorAll('button')].find(x => (x.textContent || '').trim() === '取消'); if (b) { b.click(); return true } return false })()`)
   await sleep(320)
   c('取消后任务保留', (await s.st()).tasks.length === beforeDel && !(await s.ev(`!!document.querySelector('.modal')`)))
-  await s.ev(`(() => { const row = (${ROW})('晨间规划 / 收件箱清理'); const b = row && row.querySelector('[title="删除任务"]'); if (!b) return false; b.click(); return true })()`)
+  await s.ev(`(() => { const row = (${ROW})('晨间规划 / 闪念清理'); const b = row && row.querySelector('[title="删除任务"]'); if (!b) return false; b.click(); return true })()`)
   await sleep(320)
   await s.ev(`(() => { const m = [...document.querySelectorAll('.modal')].pop(); const b = [...m.querySelectorAll('button')].find(x => (x.textContent || '').trim() === '删除'); if (b) { b.click(); return true } return false })()`)
   await sleep(380)
@@ -1512,7 +1512,7 @@ suite('搜索筛选排序', async (s, c) => {
   await s.nav('任务管理', 420)
 
   const rows = () => s.ev(`window.__tm.count('.task-row')`)
-  const titles = () => s.ev(`[...document.querySelectorAll('.task-row')].map(r => ((r.querySelector('.top3-title') || r.querySelector('span.truncate') || {}).textContent || '').trim())`)
+  const titles = () => s.ev(`[...document.querySelectorAll('.task-row')].map(r => { const el = r.querySelector('.top3-title') || r.querySelector('span.truncate'); if (!el) return ''; const own = [...el.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); return ((own ? own.textContent : el.textContent) || '').trim() })`)
   const SET = (sel, v) => s.ev(`window.__tm.set(${JSON.stringify(sel)}, ${JSON.stringify(v)})`)
   const CLICK = (sel, t) => s.ev(`window.__tm.click(${JSON.stringify(sel)}, ${JSON.stringify(t)})`)
   const CNT = () => s.ev(`window.__tm.text('[data-testid=task-count]')`)
@@ -1578,13 +1578,13 @@ suite('搜索筛选排序', async (s, c) => {
   await SET('[data-testid=task-sort]', 'time')
   await sleep(340)
   const byTime = await titles()
-  c('按计划时间升序：08:00 在最前', byTime[0] === '晨间规划 / 收件箱清理', byTime[0])
+  c('按计划时间升序：08:00 在最前', byTime[0] === '晨间规划 / 闪念清理', byTime[0])
   c('按计划时间升序：20:00 在最后', byTime[byTime.length - 1] === '更新知识素材库', byTime[byTime.length - 1])
   await s.ev(`document.querySelector('[data-testid=task-dir]').click()`)
   await sleep(340)
   const descOrder = await titles()
   c('方向按钮切为降序', descOrder[0] === '更新知识素材库', descOrder[0])
-  c('降序后顺序整体反转', descOrder[descOrder.length - 1] === '晨间规划 / 收件箱清理', descOrder[descOrder.length - 1])
+  c('降序后顺序整体反转', descOrder[descOrder.length - 1] === '晨间规划 / 闪念清理', descOrder[descOrder.length - 1])
   await s.ev(`document.querySelector('[data-testid=task-dir]').click()`)
   await sleep(300)
 
@@ -1625,7 +1625,7 @@ suite('搜索筛选排序', async (s, c) => {
   await CLICK('.tab-pill', '已完成')
   await sleep(400)
   c('四象限选「已完成」显示 2 条', (await rows()) === 2, String(await rows()))
-  c('四象限已完成视图内容正确', (await titles()).every(t => ['深度专注：核心任务 B', '晨间规划 / 收件箱清理'].includes(t)), JSON.stringify(await titles()))
+  c('四象限已完成视图内容正确', (await titles()).every(t => ['深度专注：核心任务 B', '晨间规划 / 闪念清理'].includes(t)), JSON.stringify(await titles()))
 
   // 13) 切回列表视图，筛选条件保持
   await CLICK('.tab-pill', '列表')

@@ -26,7 +26,7 @@ export default function InboxPage() {
   return (
     <div>
       <PageHero
-        eyebrow="INBOX · 零压力捕捉"
+        eyebrow="SPARK · 零压力捕捉"
         title="脑子里蹦出来的，"
         highlight="先扔进来。"
         desc="不用分类、不用想优先级。捕捉之后，再决定它该去哪。"
@@ -53,7 +53,7 @@ export default function InboxPage() {
         {state.inbox.length === 0 ? (
           <EmptyState
             icon={Inbox}
-            title="收件箱空了，说明你处理得很干净 ✦"
+            title="闪念空了，说明你处理得很干净 ✦"
             hint="有想法随时回来记一笔"
             className="!shadow-none !p-8"
           />

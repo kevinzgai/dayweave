@@ -31,3 +31,8 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent / tool session caches
+.pi/
+.tts/
+.workbuddy/

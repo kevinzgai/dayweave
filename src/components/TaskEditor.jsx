@@ -17,6 +17,7 @@ export default function TaskEditor({ task, onClose }) {
     time: task.time || '',
     progress: task.progress ?? 0,
     todayTop: !!task.todayTop,
+    projectId: task.projectId || '',
   })
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -30,6 +31,7 @@ export default function TaskEditor({ task, onClose }) {
       time: task.time || '',
       progress: task.progress ?? 0,
       todayTop: !!task.todayTop,
+      projectId: task.projectId || '',
     })
   }, [task])
 
@@ -133,6 +135,13 @@ export default function TaskEditor({ task, onClose }) {
           className={future || topFull ? 'opacity-60' : undefined}
           onChange={e => set('todayTop', e.target.checked)}
         />
+
+        <FormField label="归属项目（可选）" hint="挂上后可在项目详情里跟进">
+          <Select value={form.projectId || ''} onChange={e => set('projectId', e.target.value)}>
+            <option value="">不关联</option>
+            {state.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        </FormField>
       </Modal>
 
       <ConfirmDialog

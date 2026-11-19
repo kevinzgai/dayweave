@@ -5,7 +5,7 @@ import { useStore } from '../store'
 /**
  * 全局命令面板（Ctrl/Cmd + K）
  * - 输入模块名：跳转到对应模块
- * - 输入任意文字后回车：直接记入收件箱
+ * - 输入任意文字后回车：直接记入闪念
  */
 export default function CommandPalette({ open, onClose, items, onNav }) {
   const { actions } = useStore()
@@ -32,7 +32,7 @@ export default function CommandPalette({ open, onClose, items, onNav }) {
       matched.push({
         type: 'capture',
         key: '__capture',
-        label: `记入收件箱：${q.trim()}`,
+        label: `记入闪念：${q.trim()}`,
         group: '快速捕捉',
       })
     }
@@ -75,7 +75,7 @@ export default function CommandPalette({ open, onClose, items, onNav }) {
           <input
             ref={inputRef}
             className="palette-input"
-            placeholder="跳转到模块，或输入内容回车记入收件箱…"
+            placeholder="跳转到模块，或输入内容回车记入闪念…"
             value={q}
             onChange={e => setQ(e.target.value)}
             onKeyDown={onKeyDown}

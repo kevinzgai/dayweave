@@ -7,8 +7,11 @@ import {
 import { useStore } from './store'
 import CommandPalette from './components/CommandPalette'
 import MiniPanel from './components/MiniPanel'
+import WindowControls from './components/WindowControls'
 import { ThemeQuickSwitch } from './components/ThemePicker'
 import { isTauri, openMiniWindow } from './miniWindow'
+
+import logoMark from './assets/logo-mark.png'
 import Dashboard from './pages/Dashboard'
 import InboxPage from './pages/InboxPage'
 import TasksPage from './pages/TasksPage'
@@ -29,7 +32,7 @@ import Placeholder from './pages/Placeholder'
 const NAV = [
   { group: '工作台', items: [
     { key: 'dashboard', label: '首页驾驶舱', icon: LayoutDashboard, page: 'dashboard' },
-    { key: 'inbox', label: '收件箱', icon: Inbox, page: 'inbox', badge: true },
+    { key: 'inbox', label: '闪念', icon: Inbox, page: 'inbox', badge: true },
     { key: 'tasks', label: '任务管理', icon: ListTodo, page: 'tasks' },
     { key: 'blocks', label: '日程 / 时间块', icon: CalendarDays, page: 'blocks' },
   ]},
@@ -55,7 +58,7 @@ const NAV = [
 
 const TITLES = {
   dashboard: ['时间管理工作台', '把时间花在最重要的事上'],
-  inbox: ['收件箱', '快速捕捉，不让任何一个想法溜走'],
+  inbox: ['闪念', '闪念一响，先接住再想'],
   tasks: ['任务管理', '聚焦执行，逐个击破'],
   blocks: ['日程 / 时间块', '为重要的事预留专属时段'],
   focus: ['专注计时', '一次只做一件事'],
@@ -75,8 +78,8 @@ function Sidebar({ active, onNav }) {
   const { state } = useStore()
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark"><Timer size={19} strokeWidth={2.4} /></div>
+      <div className="brand" data-tauri-drag-region="deep">
+        <div className="brand-mark"><img src={logoMark} alt="" /></div>
         <div>
           <div className="brand-title">织日</div>
           <div className="brand-sub">DAYWEAVE</div>
@@ -193,7 +196,9 @@ export default function App() {
       <Sidebar active={nav.key} onNav={onNav} />
       {navOpen && <button className="nav-scrim" aria-label="关闭导航" onClick={() => setNavOpen(false)} />}
       <div className="main">
-        <header className="topbar">
+        {/* 无边框窗口：顶栏即标题栏。deep 让整条顶栏（含文字/图标）都能拖拽，
+            按钮等可点击元素本身会拦截拖拽，双击空白处触发最大化/还原。 */}
+        <header className="topbar" data-tauri-drag-region="deep">
           <button className="nav-toggle" aria-label="打开导航" onClick={() => setNavOpen(true)}>
             <Menu size={18} />
           </button>
@@ -220,6 +225,7 @@ export default function App() {
           </button>
           <ThemeQuickSwitch />
           <div className="top-avatar">{state.profile.name?.[0]?.toUpperCase() || 'K'}</div>
+          <WindowControls />
         </header>
         <main className="content">
           <div className="content-inner">

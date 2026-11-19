@@ -6,15 +6,15 @@ import { Button, Checkbox, FormField, FormGrid, Modal, Select, TextInput } from 
 export default function AddTask({ onAdd, compact = false, onCreated, portalTarget }) {
   const { state } = useStore()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false })
+  const [form, setForm] = useState({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v, ...(k === 'date' && !canBeTodayTop({ date: v }) ? { todayTop: false } : {}) }))
   const topCount = state.tasks.filter(t => t.todayTop && t.status !== 'done' && canBeTodayTop(t)).length
   const topFull = topCount >= 3
   const future = !canBeTodayTop(form)
-  const show = () => { setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false }); setOpen(true) }
+  const show = () => { setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '' }); setOpen(true) }
   const close = () => {
     setOpen(false)
-    setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false })
+    setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '' })
   }
   const submit = (e) => {
     e.preventDefault()
@@ -77,6 +77,13 @@ export default function AddTask({ onAdd, compact = false, onCreated, portalTarge
           className={topFull || future ? 'opacity-60' : undefined}
           onChange={e => set('todayTop', e.target.checked)}
         />
+
+        <FormField label="归属项目（可选）" hint="挂上后可在项目详情里跟进">
+          <Select value={form.projectId || ''} onChange={e => set('projectId', e.target.value)}>
+            <option value="">不关联</option>
+            {state.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        </FormField>
       </Modal>
     </>
   )

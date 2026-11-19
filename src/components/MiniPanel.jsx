@@ -1,8 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Pause, Play, Pin, X, Timer, Home, Sparkles, ChevronLeft } from 'lucide-react'
+import {
+  Check, Pause, Play, Pin, PinOff, X, Timer, Home, Sparkles,
+  PanelRightClose, PanelRightOpen,
+} from 'lucide-react'
 import { useStore, taskSchedule, isTaskOverdue } from '../store'
 import AddTask from './AddTask'
-import { setMiniCompact, closeMiniWindow, openMainWindow } from '../miniWindow'
+import {
+  setMiniCompact, closeMiniWindow, openMainWindow,
+  isMiniAlwaysOnTop, toggleMiniAlwaysOnTop, startMiniResize,
+} from '../miniWindow'
 
 /**
  * 浮窗卡片：
@@ -15,6 +21,9 @@ export default function MiniPanel({ mode = 'float', onClose, onOpenMain }) {
   const [now, setNow] = useState(Date.now())
   const [collapsed, setCollapsed] = useState(false)
   const [created, setCreated] = useState(false)
+  const [pinned, setPinned] = useState(true)
+  const [ctxMenu, setCtxMenu] = useState(null)
+  const menuRef = useRef(null)
 
   useEffect(() => {
     if (!created) return
@@ -25,11 +34,66 @@ export default function MiniPanel({ mode = 'float', onClose, onOpenMain }) {
   const panelRef = useRef(null)
   const dragRef = useRef(null)
 
+  // 同步真实置顶状态（窗口模式下从 Tauri 读取，浏览器模式默认置顶）
+  useEffect(() => {
+    let alive = true
+    isMiniAlwaysOnTop().then(v => { if (alive) setPinned(v) })
+    return () => { alive = false }
+  }, [])
+
+  // 右键菜单：点击外部 / Esc / 滚动时关闭，与主应用 TaskMenu 行为一致
+  useEffect(() => {
+    if (!ctxMenu) return
+    const onDown = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setCtxMenu(null) }
+    const onKey = (e) => { if (e.key === 'Escape') setCtxMenu(null) }
+    const onScroll = () => setCtxMenu(null)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onScroll)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [ctxMenu])
+
   useEffect(() => {
     if (!t.running) return
     const i = setInterval(() => setNow(Date.now()), 250)
     return () => clearInterval(i)
   }, [t.running])
+
+  // 拦截系统默认右键菜单，改用自己的菜单
+  const onContextMenu = (e) => {
+    e.preventDefault()
+    if (mode !== 'window') return
+    setCtxMenu({
+      x: Math.max(8, Math.min(e.clientX, (window.innerWidth || 0) - 172)),
+      y: Math.max(8, Math.min(e.clientY, (window.innerHeight || 0) - 216)),
+    })
+  }
+
+  const doTogglePin = async () => {
+    setCtxMenu(null)
+    const next = await toggleMiniAlwaysOnTop()
+    setPinned(next)
+  }
+  const doToggleCollapse = async () => {
+    setCtxMenu(null)
+    await toggleCollapse()
+  }
+  const doOpenMain = async () => {
+    setCtxMenu(null)
+    if (mode === 'window') await openMainWindow()
+    else onOpenMain?.()
+  }
+  const doClose = async () => {
+    setCtxMenu(null)
+    if (mode === 'window') await closeMiniWindow()
+    else onClose?.()
+  }
 
   const remaining = t.running && t.endsAt ? Math.max(0, Math.round((t.endsAt - now) / 1000)) : t.remaining
   const mm = String(Math.floor(remaining / 60)).padStart(2, '0')
@@ -80,39 +144,50 @@ export default function MiniPanel({ mode = 'float', onClose, onOpenMain }) {
 
   const style = mode === 'float' && pos.left != null ? { left: pos.left, top: pos.top } : undefined
 
+  // 收起态也要能右键（置顶/展开/关闭）。窄签与其他分支共用同一套菜单，
+  // 但收起态只有一个根节点，故在此单独渲染。
   if (collapsed) {
     return (
-      <button
-        className={`mini-tab ${mode === 'window' ? 'in-window' : ''}`}
-        onClick={toggleCollapse}
-        title="展开浮窗"
-        aria-label={`展开浮窗，剩余 ${mm} 分 ${ss} 秒，${tasks.length} 项未完成`}
-      >
-        <span className={`mini-tab-icon ${t.running ? 'live' : ''}`}><Timer size={19} /></span>
-        <span className="mini-tab-body"><span className="mini-tab-time">{mm}:{ss}</span><span className="mini-tab-count">{t.running ? t.task || '深度专注' : `已暂停 · ${tasks.length} 项`}</span></span>
-        <ChevronLeft size={16} className="mini-tab-expand" />
-      </button>
+      <>
+        <button
+          className={`mini-tab ${mode === 'window' ? 'in-window' : ''}`}
+          onClick={toggleCollapse}
+          onContextMenu={onContextMenu}
+          title="展开浮窗"
+          aria-label={`展开浮窗，剩余 ${mm} 分 ${ss} 秒，${tasks.length} 项未完成`}
+        >
+          <span className={`mini-tab-icon ${t.running ? 'live' : ''}`}><Timer size={19} /></span>
+          <span className="mini-tab-body"><span className="mini-tab-time">{mm}:{ss}</span><span className="mini-tab-count">{t.running ? t.task || '深度专注' : `已暂停 · ${tasks.length} 项`}</span></span>
+          <PanelRightOpen size={16} className="mini-tab-expand" />
+        </button>
+        {renderCtxMenu()}
+      </>
     )
   }
 
   if (t.running) {
     return (
-      <aside ref={panelRef} className={`mini-panel mini-focusing ${mode === 'window' ? 'in-window' : ''}`} style={style} onMouseDown={startDrag} data-tauri-drag-region>
-        <button className="mini-clock mini-focus-clock" onClick={actions.pauseTimer} title="暂停专注，返回任务列表" aria-label={`剩余 ${mm} 分 ${ss} 秒，点击暂停专注`}>{mm}:{ss}</button>
-        <div className="mini-task mini-focus-task" data-tauri-drag-region>{t.task || '深度专注'}</div>
-      </aside>
+      <>
+        <aside ref={panelRef} className={`mini-panel mini-focusing ${mode === 'window' ? 'in-window' : ''}`} style={style} onMouseDown={startDrag} onContextMenu={onContextMenu} data-tauri-drag-region>
+          <button className="mini-clock mini-focus-clock" onClick={actions.pauseTimer} title="暂停专注，返回任务列表" aria-label={`剩余 ${mm} 分 ${ss} 秒，点击暂停专注`}>{mm}:{ss}</button>
+          <div className="mini-task mini-focus-task" data-tauri-drag-region>{t.task || '深度专注'}</div>
+        </aside>
+        {mode === 'window' && <ResizeHandles />}
+        {renderCtxMenu()}
+      </>
     )
   }
 
   return (
-    <aside ref={panelRef} className={`mini-panel ${mode === 'window' ? 'in-window' : ''}`} style={style}>
-      <header className="mini-head" onMouseDown={startDrag} data-tauri-drag-region>
-        <span className={`mini-dot ${t.running ? 'live' : ''}`} />
-        <span className="mini-title" data-tauri-drag-region>未完成 · {tasks.length} 项</span>
-        <AddTask compact portalTarget={panelRef} onAdd={actions.addTask} onCreated={() => setCreated(true)} />
-        <button className="mini-ico" onClick={toggleCollapse} title="贴边收起"><Pin size={13} /></button>
-        <button className="mini-ico" onClick={async () => { if (mode === 'window') await closeMiniWindow(); else onClose?.() }} title="关闭浮窗"><X size={13} /></button>
-      </header>
+    <>
+      <aside ref={panelRef} className={`mini-panel ${mode === 'window' ? 'in-window' : ''}`} style={style} onContextMenu={onContextMenu}>
+        <header className="mini-head" onMouseDown={startDrag} data-tauri-drag-region>
+          <span className={`mini-dot ${t.running ? 'live' : ''}`} />
+          <span className="mini-title" data-tauri-drag-region>未完成 · {tasks.length} 项</span>
+          <AddTask compact portalTarget={panelRef} onAdd={actions.addTask} onCreated={() => setCreated(true)} />
+          <button className="mini-ico" onClick={toggleCollapse} title="贴边收起"><PanelRightClose size={14} /></button>
+          <button className="mini-ico" onClick={doClose} title="关闭浮窗"><X size={13} /></button>
+        </header>
 
       <div className="mini-timer">
         <div className="mini-clock">{mm}:{ss}</div>
@@ -154,17 +229,63 @@ export default function MiniPanel({ mode = 'float', onClose, onOpenMain }) {
         ))}
       </div>
 
-      <button
-        className="mini-foot"
-        title="打开主窗口"
-        aria-label="打开主窗口"
-        onClick={async () => {
-          if (mode === 'window') await openMainWindow()
-          else onOpenMain?.()
-        }}
+        <button
+          className="mini-foot"
+          title="打开主窗口"
+          aria-label="打开主窗口"
+          onClick={doOpenMain}
+        >
+          <Home size={16} />
+        </button>
+      </aside>
+      {mode === 'window' && <ResizeHandles />}
+      {renderCtxMenu()}
+    </>
+  )
+
+  // 自定义右键菜单（仅窗口模式渲染，浏览器浮层不显示）
+  function renderCtxMenu() {
+    if (!ctxMenu || mode !== 'window') return null
+    return (
+      <div
+        ref={menuRef}
+        role="menu"
+        className="mini-ctx-menu"
+        style={{ left: ctxMenu.x, top: ctxMenu.y }}
+        onContextMenu={(e) => e.preventDefault()}
       >
-        <Home size={16} />
-      </button>
-    </aside>
+        <button role="menuitem" className="mini-ctx-item" onClick={doTogglePin}>
+          {pinned ? <PinOff size={14} /> : <Pin size={14} />}
+          {pinned ? '取消置顶' : '置顶浮窗'}
+        </button>
+        <button role="menuitem" className="mini-ctx-item" onClick={doToggleCollapse}>
+          {collapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
+          {collapsed ? '展开浮窗' : '贴边收起'}
+        </button>
+        <div className="mini-ctx-divider" />
+        <button role="menuitem" className="mini-ctx-item" onClick={doOpenMain}>
+          <Home size={14} /> 打开主窗口
+        </button>
+        <button role="menuitem" className="mini-ctx-item danger" onClick={doClose}>
+          <X size={14} /> 关闭浮窗
+        </button>
+      </div>
+    )
+  }
+}
+
+/** 无边框浮窗的四边/四角缩放手柄：按住拖拽走 Tauri 原生 resize */
+function ResizeHandles() {
+  const dirs = ['NorthWest', 'North', 'NorthEast', 'East', 'SouthEast', 'South', 'SouthWest', 'West']
+  return (
+    <div className="mini-resize-layer" aria-hidden="true">
+      {dirs.map(d => (
+        <div
+          key={d}
+          className={`mini-resize-handle resize-${d.toLowerCase()}`}
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); startMiniResize(d) }}
+        />
+      ))}
+    </div>
   )
 }

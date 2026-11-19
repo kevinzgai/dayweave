@@ -55,6 +55,62 @@ function calcStreak(history) {
   return streak
 }
 
+/* ---------------- 项目跟进：常量 + 纯函数（列表页 / 周报页共用） ---------------- */
+export const STALL_DAYS = 7 // 进行中项目超过 N 天无任何跟进记录 → 视为“停滞”
+export const PROJECT_STATUS = {
+  active: { label: '进行中', tone: 'brand' },
+  paused: { label: '已暂停', tone: 'warning' },
+  done: { label: '已完成', tone: 'success' },
+}
+export const UPDATE_TYPES = {
+  progress: { label: '进展汇报', tone: 'brand' },
+  risk: { label: '风险阻塞', tone: 'danger' },
+  plan: { label: '计划变更', tone: 'warning' },
+}
+
+const dayOffset = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return dateKey(d) }
+const tsKey = (ts) => (ts ? dateKey(new Date(ts)) : '')
+const daysBetween = (from, to) => Math.round((new Date(`${to}T00:00:00`) - new Date(`${from}T00:00:00`)) / 86400000)
+
+// 老数据补默认字段：只补缺，不覆盖已有值
+const normalizeProject = (p) => ({
+  startDate: '',
+  status: (p.progress || 0) >= 100 ? 'done' : 'active',
+  progressMode: 'manual',
+  milestones: [],
+  updates: [],
+  updatedAt: p.createdAt || Date.now(),
+  ...p,
+})
+
+// auto 模式：进度 = 已完成节点权重 / 总权重
+export const milestoneProgress = (milestones) => {
+  if (!milestones || !milestones.length) return 0
+  const total = milestones.reduce((a, m) => a + (Number(m.weight) || 1), 0)
+  const done = milestones.reduce((a, m) => a + (m.done ? (Number(m.weight) || 1) : 0), 0)
+  return total ? Math.round((done / total) * 100) : 0
+}
+export const projectProgress = (p) =>
+  p.progressMode === 'auto' && (p.milestones || []).length
+    ? milestoneProgress(p.milestones)
+    : (p.progress || 0)
+
+export const lastUpdate = (p) => (p.updates && p.updates[0]) || null
+// 最后一次“有动静”的日期：跟进记录优先，否则退回 updatedAt / createdAt
+export const lastActivity = (p) => lastUpdate(p)?.date || tsKey(p.updatedAt || p.createdAt) || ''
+export const lastActivityDays = (p) => {
+  const d = lastActivity(p)
+  return d ? Math.max(0, daysBetween(d, todayStr())) : 0
+}
+// ok 正常 · overdue 已逾期 · stalled 进行中但 N 天没动
+export const projectHealth = (p) => {
+  const progress = projectProgress(p)
+  if (p.status === 'done' || progress >= 100) return 'ok'
+  if (p.deadline && p.deadline < todayStr()) return 'overdue'
+  if (p.status === 'paused') return 'ok'
+  return lastActivityDays(p) >= STALL_DAYS ? 'stalled' : 'ok'
+}
+
 const seedState = () => ({
   profile: { name: 'Kevin', goal: '把时间花在最重要的事上' },
   settings: { weekStart: 1, autoStart: false, compact: false, theme: DEFAULT_THEME },
@@ -68,13 +124,13 @@ const seedState = () => ({
     { id: 't2', title: '处理并推进关键事项', quadrant: 'Q3', status: 'todo', progress: 0, time: '16:00', todayTop: false, createdAt: Date.now() },
     { id: 't3', title: '完成今日计划内的输出/交付', quadrant: 'Q2', status: 'doing', progress: 60, time: '18:00', todayTop: true, createdAt: Date.now() },
     { id: 't4', title: '深度专注：核心任务 B', quadrant: 'Q1', status: 'done', progress: 100, time: '10:00', todayTop: true, createdAt: Date.now() },
-    { id: 't5', title: '晨间规划 / 收件箱清理', quadrant: 'Q2', status: 'done', progress: 100, time: '08:00', todayTop: false, createdAt: Date.now() },
+    { id: 't5', title: '晨间规划 / 闪念清理', quadrant: 'Q2', status: 'done', progress: 100, time: '08:00', todayTop: false, createdAt: Date.now() },
     { id: 't6', title: '会议 / 协作沟通', quadrant: 'Q3', status: 'todo', progress: 0, time: '14:00', todayTop: false, createdAt: Date.now() },
     { id: 't7', title: '今日复盘 / 明日规划', quadrant: 'Q2', status: 'todo', progress: 0, time: '19:00', todayTop: false, createdAt: Date.now() },
     { id: 't8', title: '更新知识素材库', quadrant: 'Q4', status: 'todo', progress: 0, time: '20:00', todayTop: false, createdAt: Date.now() },
   ],
   blocks: [
-    { id: 'b1', start: '07:30', end: '08:00', title: '晨间规划 / 收件箱清理', icon: 'sun', status: 'done' },
+    { id: 'b1', start: '07:30', end: '08:00', title: '晨间规划 / 闪念清理', icon: 'sun', status: 'done' },
     { id: 'b2', start: '08:00', end: '10:00', title: '深度专注：核心任务 A', icon: 'brain', status: 'done' },
     { id: 'b3', start: '10:30', end: '12:00', title: '核心任务 B（深度工作）', icon: 'target', status: 'doing' },
     { id: 'b4', start: '12:00', end: '13:30', title: '午休 / 休息放松', icon: 'coffee', status: 'todo' },
@@ -89,10 +145,24 @@ const seedState = () => ({
   timer: { presetMin: 25, task: '深度专注', running: false, endsAt: null, remaining: 25 * 60, completedAt: null },
   reviews: {},
   projects: [
-    { id: 'p1', name: '年度目标推进', desc: '围绕年度三大方向的持续投入', progress: 80, color: '#e8a13a', deadline: '2026-12-31', createdAt: Date.now() },
     { id: 'p2', name: '学习计划完成', desc: 'LangChain / LangGraph 学习', progress: 60, color: '#7170FF', deadline: '2026-12-31', createdAt: Date.now() },
     { id: 'p3', name: '健康计划', desc: '规律作息与运动', progress: 40, color: '#e8607a', deadline: '2026-12-31', createdAt: Date.now() },
-  ],
+    {
+      // 演示「持续跟进」：带起止时间、3 个节点（权重制进度）与 2 条跟进记录
+      id: 'p1', name: '年度目标推进', desc: '围绕年度三大方向的持续投入', progress: 80, color: '#e8a13a',
+      startDate: '2026-01-05', deadline: '2026-12-31', status: 'active', progressMode: 'auto',
+      milestones: [
+        { id: 'm1', title: '三大方向年度规划', due: '2026-03-31', weight: 1, done: true, doneAt: Date.now() - 120 * 86400e3 },
+        { id: 'm2', title: '上半年中期复盘', due: '2026-06-30', weight: 1, done: true, doneAt: Date.now() - 60 * 86400e3 },
+        { id: 'm3', title: 'Q4 冲刺与年度总结', due: '2026-12-31', weight: 0.5, done: false, doneAt: null },
+      ],
+      updates: [
+        { id: 'u1', type: 'progress', content: 'Q4 重点调整为「交付优先」，跟进节奏固定到每周五。', progress: 80, date: todayStr(), createdAt: Date.now() - 3600e3 },
+        { id: 'u2', type: 'risk', content: '跨部门排期依赖尚未确认，可能影响年末总结节点。', progress: 75, date: dayOffset(-2), createdAt: Date.now() - 2 * 86400e3 },
+      ],
+      createdAt: Date.now(), updatedAt: Date.now(),
+    },
+  ].map(normalizeProject),
   goals: [
     { id: 'g1', title: '完成 ScriptEval 评估系统 V2', cat: '事业', target: 100, current: 65, unit: '%', deadline: '2026-12-31', createdAt: Date.now() },
     { id: 'g2', title: '读完 12 本专业书', cat: '学习', target: 12, current: 9, unit: '本', deadline: '2026-12-31', createdAt: Date.now() },
@@ -117,7 +187,7 @@ const seedState = () => ({
   ],
   achievements: { tasksDone: 7, focusHours: 2.5, coreResults: '2/3', goalDelta: '+1%' },
   reminders: [
-    { id: 'r1', text: '收件箱还有 3 条待处理任务', level: 'high' },
+    { id: 'r1', text: '闪念还有 3 条待处理任务', level: 'high' },
     { id: 'r2', text: '14:00 会议与任务 B 时间冲突', level: 'high' },
     { id: 'r3', text: '今日专注块已达 2 个', level: 'low' },
   ],
@@ -135,6 +205,9 @@ function loadState() {
     merged.experience = merged.experience || []
     merged.workResults = merged.workResults || []
     merged.goals = merged.goals || []
+
+    // 项目跟进字段迁移：补默认值，不覆盖旧数据
+    merged.projects = (merged.projects || []).map(normalizeProject)
     merged.settings = { ...base.settings, ...(merged.settings || {}) }
     if (!THEMES.some(t => t.id === merged.settings.theme)) merged.settings.theme = DEFAULT_THEME
     merged.habits = (merged.habits || []).map(h => ({ history: [], freq: '每日', ...h }))
@@ -292,9 +365,73 @@ export function StoreProvider({ children }) {
     saveReview: (review) => setState(s => ({ ...s, reviews: { ...s.reviews, [todayStr()]: { ...review, date: todayStr(), updatedAt: Date.now() } } })),
 
     // projects
-    addProject: (p) => setState(s => ({ ...s, projects: [...s.projects, { id: uid('p'), progress: 0, color: '#7170FF', desc: '', deadline: '', createdAt: Date.now(), ...p }] })),
-    updateProject: (id, patch) => setState(s => ({ ...s, projects: s.projects.map(p => p.id === id ? { ...p, ...patch } : p) })),
+    addProject: (p) => setState(s => ({ ...s, projects: [...s.projects, normalizeProject({ id: uid('p'), progress: 0, color: '#7170FF', desc: '', deadline: '', startDate: '', createdAt: Date.now(), ...p })] })),
+    updateProject: (id, patch) => setState(s => ({ ...s, projects: s.projects.map(p => {
+      if (p.id !== id) return p
+      const next = { ...p, ...patch }
+      // 进度与状态联动：到 100 记为完成；从 100 调低则回到进行中
+      if (patch.progress != null) {
+        if (patch.progress >= 100) next.status = 'done'
+        else if (p.status === 'done') next.status = 'active'
+      }
+      next.updatedAt = Date.now()
+      return next
+    }) })),
     removeProject: (id) => setState(s => ({ ...s, projects: s.projects.filter(p => p.id !== id) })),
+    // 跟进 / 汇报记录（头插，新 → 旧）
+    addProjectUpdate: (pid, upd) => setState(s => ({ ...s, projects: s.projects.map(p => {
+      if (p.id !== pid) return p
+      const progress = upd.progress == null || upd.progress === '' ? (p.progress || 0) : Math.max(0, Math.min(100, Math.round(+upd.progress)))
+      const record = { id: uid('u'), type: 'progress', content: '', date: todayStr(), createdAt: Date.now(), ...upd, progress }
+      const status = progress >= 100 ? 'done' : (p.status === 'done' ? 'active' : p.status)
+      return { ...p, progress, status, updatedAt: Date.now(), updates: [record, ...(p.updates || [])] }
+    }) })),
+    removeProjectUpdate: (pid, uidU) => setState(s => ({ ...s, projects: s.projects.map(p => p.id === pid ? { ...p, updates: (p.updates || []).filter(u => u.id !== uidU) } : p) })),
+    // 里程碑（节点）：加入首个节点时进度改为按节点自动计算
+    addMilestone: (pid, ms) => setState(s => ({ ...s, projects: s.projects.map(p => {
+      if (p.id !== pid) return p
+      const milestones = [...(p.milestones || []), { id: uid('m'), title: '', due: '', weight: 1, done: false, doneAt: null, ...ms }]
+      const progressMode = (p.milestones || []).length === 0 ? 'auto' : p.progressMode
+      const next = { ...p, milestones, progressMode, updatedAt: Date.now() }
+      if (progressMode === 'auto') {
+        next.progress = milestoneProgress(milestones)
+        if (next.progress >= 100) next.status = 'done'
+      }
+      return next
+    }) })),
+    updateMilestone: (pid, mid, patch) => setState(s => ({ ...s, projects: s.projects.map(p => {
+      if (p.id !== pid) return p
+      const milestones = (p.milestones || []).map(m => m.id !== mid ? m : ({
+        ...m, ...patch,
+        doneAt: patch.done === undefined ? m.doneAt : (patch.done ? Date.now() : null),
+      }))
+      const next = { ...p, milestones, updatedAt: Date.now() }
+      if (p.progressMode === 'auto' && milestones.length) {
+        next.progress = milestoneProgress(milestones)
+        if (next.progress >= 100) next.status = 'done'
+        else if (p.status === 'done') next.status = 'active'
+      }
+      return next
+    }) })),
+    removeMilestone: (pid, mid) => setState(s => ({ ...s, projects: s.projects.map(p => {
+      if (p.id !== pid) return p
+      const milestones = (p.milestones || []).filter(m => m.id !== mid)
+      const next = { ...p, milestones, updatedAt: Date.now() }
+      if (p.progressMode === 'auto' && milestones.length) next.progress = milestoneProgress(milestones)
+      return next
+    }) })),
+    // auto ⇄ manual（切回 manual 保留当前数值）
+    toggleProgressMode: (pid) => setState(s => ({ ...s, projects: s.projects.map(p => {
+      if (p.id !== pid) return p
+      const progressMode = p.progressMode === 'auto' ? 'manual' : 'auto'
+      const next = { ...p, progressMode, updatedAt: Date.now() }
+      if (progressMode === 'auto' && (p.milestones || []).length) {
+        next.progress = milestoneProgress(p.milestones)
+        if (next.progress >= 100) next.status = 'done'
+        else if (p.status === 'done') next.status = 'active'
+      }
+      return next
+    }) })),
 
     // goals
     addGoal: (g) => setState(s => ({ ...s, goals: [...s.goals, { id: uid('g'), target: 100, current: 0, unit: '%', cat: '事业', deadline: '', createdAt: Date.now(), ...g }] })),
@@ -335,7 +472,7 @@ export function StoreProvider({ children }) {
     importData: (json) => setState(() => {
       const parsed = JSON.parse(json)
       const base = seedState()
-      return { ...base, ...parsed, tasks: (parsed.tasks || base.tasks).map(normalizeTask) }
+      return { ...base, ...parsed, tasks: (parsed.tasks || base.tasks).map(normalizeTask), projects: (parsed.projects || base.projects).map(normalizeProject) }
     }),
     resetAll: () => setState(seedState()),
   }), [])

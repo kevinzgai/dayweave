@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
-import { FileText, Timer, RefreshCw, Award, TrendingUp, Calendar } from 'lucide-react'
-import { useStore, todayStr } from '../store'
-import { Segmented, Stat, StatGrid } from '../ui'
+import { FileText, Timer, RefreshCw, Award, TrendingUp, Calendar, FolderKanban, Copy, Check } from 'lucide-react'
+import { useStore, todayStr, projectProgress, PROJECT_STATUS } from '../store'
+import { Button, Segmented, Stat, StatGrid } from '../ui'
 
 const pad = n => String(n).padStart(2, '0')
 const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -60,6 +60,53 @@ export default function ReportPage() {
     const avg = activeDays ? Math.round(focusMinutes / activeDays) : 0
     return { activeDays, avg }
   }, [focusMinutes, days])
+
+  // 项目跟进：进行中项目的本期汇报数据
+  const projRows = state.projects
+    .filter(p => p.status !== 'done' && projectProgress(p) < 100)
+    .map(p => {
+      const ups = (p.updates || []).filter(u => inRange(u.date))
+      return {
+        p,
+        progress: projectProgress(p),
+        ups,
+        latest: ups[0] || null,
+        risks: ups.filter(u => u.type === 'risk').length,
+        milestones: p.milestones || [],
+      }
+    })
+  const [copied, setCopied] = useState(false)
+  const copyReport = async () => {
+    const seg = (u) => `${u.content.length > 40 ? u.content.slice(0, 40) + '…' : u.content}（${u.date.slice(5)}）`
+    const lines = []
+    projRows.forEach(({ p, progress, ups, risks, milestones }) => {
+      const range = p.startDate && p.deadline
+        ? `计划 ${p.startDate.slice(5)} → ${p.deadline.slice(5)}`
+        : p.deadline ? `截止 ${p.deadline.slice(5)}` : '未设计划时间'
+      lines.push(`【${p.name}】${range} ｜ 进度 ${progress}% ｜ ${PROJECT_STATUS[p.status]?.label || '进行中'}`)
+      lines.push(ups.length
+        ? `${rangeLabel}跟进 ${ups.length} 条：${ups.slice(0, 2).map(seg).join('；')}`
+        : `${rangeLabel}暂无跟进记录`)
+      if (risks > 0) lines.push(`风险 ${risks} 条：${ups.filter(u => u.type === 'risk').map(seg).join('；')}`)
+      if (milestones.length) {
+        lines.push(`节点：${milestones.slice(0, 5).map(m => `${m.done ? '✅' : '⬜'} ${m.title}${m.due ? `（${m.due.slice(5)}）` : ''}`).join(' ｜ ')}`)
+      }
+      lines.push('')
+    })
+    const text = lines.join('\n').trim() || `${rangeLabel}暂无进行中的项目`
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch { /* 剪贴板不可用时忽略 */ }
+      ta.remove()
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div>
@@ -138,6 +185,43 @@ export default function ReportPage() {
         </div>
       </div>
 
+      {/* 项目跟进：本期项目进展 + 一键复制汇报文案 */}
+      <div className="panel mt-4">
+        <div className="section-head">
+          <span className="bar" />
+          <h2>项目跟进</h2>
+          <span className="sub">{projRows.length} 个进行中</span>
+          <div className="right">
+            <Button size="sm" variant={copied ? 'soft' : 'ghost'} icon={copied ? Check : Copy} onClick={copyReport}>
+              {copied ? '已复制' : '复制本期汇报'}
+            </Button>
+          </div>
+        </div>
+        {projRows.length === 0 ? (
+          <div className="empty mini">当前没有进行中的项目</div>
+        ) : projRows.map(({ p, progress, ups, latest, risks }) => (
+          <div key={p.id} className="feed-item">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[13px] font-700">{p.name}</span>
+              <span className="mini muted">
+                {p.startDate && p.deadline
+                  ? `计划 ${p.startDate.slice(5)} → ${p.deadline.slice(5)}`
+                  : p.deadline ? `截止 ${p.deadline.slice(5)}` : ''}
+              </span>
+              <span className="mini muted">{PROJECT_STATUS[p.status]?.label}</span>
+              <div className="grow" />
+              <span className="mini font-700 tabular-nums" style={{ color: p.color }}>{progress}%</span>
+            </div>
+            <div className="bar-track mt-1.5"><i style={{ width: `${progress}%`, background: p.color }} /></div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="mini muted">
+                {rangeLabel}跟进 {ups.length} 条{risks > 0 ? ` · 风险 ${risks} 条` : ''}
+              </span>
+              {latest && <span className="mini muted">最新：{latest.date.slice(5)} {latest.content}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
       <div className="mini muted" style={{ marginTop: 16 }}>说明：统计基于专注记录、复盘与成果记录自动聚合；任务完成率为当前快照。</div>
     </div>
   )

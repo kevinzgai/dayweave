@@ -125,7 +125,7 @@ export default function SettingsPage() {
           <span className="stat-ico bg-brand-100 text-brand-600"><Database size={19} /></span>
           <div>
             <div className="text-[13px] font-700">织日 · DayWeave</div>
-            <div className="ui-help mt-0.5">版本 1.3.2 · Tauri 2 + React + UnoCSS · 5 套配色方案 · 本地离线运行</div>
+            <div className="ui-help mt-0.5">版本 1.3.6 · Tauri 2 + React + UnoCSS · 5 套配色方案 · 本地离线运行</div>
           </div>
         </div>
       </Card>

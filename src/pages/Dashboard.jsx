@@ -42,7 +42,7 @@ export default function Dashboard({ onNav }) {
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
 
     if (state.inbox.length > 0) {
-      list.push({ id: 'r-inbox', level: 'high', text: `收件箱还有 ${state.inbox.length} 条待处理，建议先清空` })
+      list.push({ id: 'r-inbox', level: 'high', text: `闪念还有 ${state.inbox.length} 条待处理，建议先清空` })
     }
     if (derived.topTasks.length === 0) {
       list.push({ id: 'r-top', level: 'high', text: '今天还没标记「最重要的 3 件事」，去任务里挑一下' })

@@ -13,6 +13,9 @@ export async function openMiniWindow() {
     const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow')
     const existing = await WebviewWindow.getByLabel('mini')
     if (existing) {
+      // 任务栏里没有浮窗图标，被 Win+D / Win+M 最小化后无法从任务栏点回来，
+      // 所以重新唤起时先还原再显示。
+      await existing.unminimize()
       await existing.show()
       await existing.setFocus()
       return true
@@ -26,6 +29,15 @@ export async function openMiniWindow() {
       minWidth: 260,
       minHeight: 320,
       resizable: true,
+      // 浮窗是「卡片」而非独立应用窗口：不占任务栏图标，也不允许最小化。
+      // skipTaskbar 在 tao 0.37 走 ITaskbarList::DeleteTab（删任务栏按钮），
+      // 不改窗口样式，所以 Alt+Tab 与贴边 Snap 都不受影响；
+      // 但 explorer 重启后按钮可能回来，届时需要重新 set skip_taskbar。
+      // minimizable:false 去掉 WS_MINIMIZEBOX，任务栏右键/Alt+Space 里都没有「最小化」。
+      // 不要改回 skipTaskbar:false——那会让任务栏重新多出一个浮窗图标。
+      minimizable: false,
+      // maximizable 保持 true：Windows 的贴边 Snap 依赖 WS_MAXIMIZEBOX，关掉就吸附不了。
+      maximizable: true,
       decorations: false,
       alwaysOnTop: true,
       skipTaskbar: true,
@@ -52,12 +64,21 @@ export async function openMiniWindow() {
 
 export async function openMainWindow() {
   if (!isTauri()) return false
+  // 优先走 Rust command：托盘、单实例、浮窗共用同一套唤起逻辑，
+  // 且不受打包后 JS 窗口注册表时序影响（getByLabel 偶发返回 null 的根因）。
+  try {
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('show_main_window')
+    return true
+  } catch (e) {
+    console.warn('通过 Rust 唤起主窗口失败，尝试 JS 回退：', e)
+  }
   try {
     const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow')
     const main = await WebviewWindow.getByLabel('main')
     if (!main) return false
-    await main.show()
     await main.unminimize()
+    await main.show()
     await main.setFocus()
     return true
   } catch (e) {
@@ -106,4 +127,38 @@ export async function setMiniCompact(compact) {
     }
     return true
   } catch { return false }
+}
+
+/** 查询当前浮窗是否置顶（浏览器环境返回 false） */
+export async function isMiniAlwaysOnTop() {
+  if (!isTauri()) return false
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    return await getCurrentWindow().isAlwaysOnTop()
+  } catch { return false }
+}
+
+/** 切换浮窗置顶状态，返回切换后的状态；浏览器环境无操作 */
+export async function toggleMiniAlwaysOnTop() {
+  if (!isTauri()) return false
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const w = getCurrentWindow()
+    const next = !(await w.isAlwaysOnTop())
+    await w.setAlwaysOnTop(next)
+    return next
+  } catch { return false }
+}
+
+/** 从指定边缘开始系统级拖拽调整窗口大小（无边框窗口的缩放能力） */
+export async function startMiniResize(direction) {
+  if (!isTauri()) return false
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    await getCurrentWindow().startResizeDragging(direction)
+    return true
+  } catch (e) {
+    console.warn('开始缩放浮窗失败：', e)
+    return false
+  }
 }

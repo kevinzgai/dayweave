@@ -9,7 +9,7 @@ export default function Placeholder({ title, label }) {
       </div>
       <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{label || title}</h2>
       <p className="muted" style={{ maxWidth: 420, margin: '0 auto', fontSize: 13, lineHeight: 1.7 }}>
-        这个模块规划中。当前版本聚焦核心闭环：收件箱 → 任务管理 → 时间块 → 专注计时 → 时间复盘。<br/>
+        这个模块规划中。当前版本聚焦核心闭环：闪念 → 任务管理 → 时间块 → 专注计时 → 时间复盘。<br/>
         完成这些后，会逐个补齐剩余模块。
       </p>
     </div>

@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import {
   AlertTriangle, ArrowLeft, Calendar, Check, CheckCircle2, Clock, Flag, FolderKanban,
-  ListTodo, MessageSquarePlus, Pencil, Plus, Trash2,
+  ListTodo, MessageSquarePlus, Pencil, Plus, Target, Trash2,
 } from 'lucide-react'
 import {
   useStore, todayStr, projectProgress, projectHealth, lastActivity, lastActivityDays,
@@ -9,7 +9,7 @@ import {
 } from '../store'
 import {
   Button, Card, EmptyState, FormField, FormGrid, IconButton, Modal, PageToolbar,
-  Pill, SectionHead, Segmented, Stat, StatGrid, TextInput,
+  Pill, SectionHead, Segmented, Select, Stat, StatGrid, TextInput,
 } from '../ui'
 
 const COLORS = ['#7170FF', '#E8A13A', '#3FB37F', '#E8607A', '#4F8EF7', '#9B7BE8']
@@ -299,6 +299,26 @@ function ProjectDetail({ projectId, onBack }) {
             {health !== 'ok' && <Pill tone={HEALTH[health].tone}>{HEALTH[health].label}</Pill>}
           </div>
           {p.desc && <div className="ui-help mt-0.5">{p.desc}</div>}
+
+      {/* 关联目标：这个项目服务于哪个目标 */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="ui-help flex items-center gap-1.5"><Target size={12} /> 服务于目标</span>
+        <div className="w-64">
+          <Select
+            aria-label="关联目标"
+            value={p.goalId || ''}
+            onChange={e => actions.updateProject(p.id, { goalId: e.target.value })}
+          >
+            <option value="">不关联</option>
+            {(state.goals || []).map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
+          </Select>
+        </div>
+        {p.goalId && (state.goals || []).find(g => g.id === p.goalId) && (
+          <span className="ui-help">
+            目标当前 {(() => { const g = (state.goals || []).find(x => x.id === p.goalId); return `${g.current} / ${g.target} ${g.unit}` })()}
+          </span>
+        )}
+      </div>
         </div>
         <Segmented
           value={p.status}

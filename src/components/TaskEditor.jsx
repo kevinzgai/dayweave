@@ -18,6 +18,7 @@ export default function TaskEditor({ task, onClose }) {
     progress: task.progress ?? 0,
     todayTop: !!task.todayTop,
     projectId: task.projectId || '',
+    goalId: task.goalId || '',
   })
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -32,6 +33,7 @@ export default function TaskEditor({ task, onClose }) {
       progress: task.progress ?? 0,
       todayTop: !!task.todayTop,
       projectId: task.projectId || '',
+      goalId: task.goalId || '',
     })
   }, [task])
 
@@ -140,6 +142,13 @@ export default function TaskEditor({ task, onClose }) {
           <Select value={form.projectId || ''} onChange={e => set('projectId', e.target.value)}>
             <option value="">不关联</option>
             {state.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        </FormField>
+
+        <FormField label="服务于目标（可选）" hint="把任务挂到某个年度/阶段目标上">
+          <Select value={form.goalId || ''} onChange={e => set('goalId', e.target.value)}>
+            <option value="">不关联</option>
+            {(state.goals || []).map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
           </Select>
         </FormField>
       </Modal>

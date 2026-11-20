@@ -546,6 +546,50 @@ suite('目标与项目', async (s, c) => {
   await s.ev(`window.__tm.click('.modal-foot .btn-primary','保存')`)
   await sleep(380)
   c('新建项目', (await s.st()).projects.some(p => p.name === '自动化项目'))
+
+  // 目标 ↔ 项目 ↔ 任务 关联
+  await s.nav('项目管理')
+  await s.ev(`(() => { const card = [...document.querySelectorAll('.project-card')].find(c => (c.textContent||'').includes('年度目标推进')); if (!card) return false; card.click(); return true })()`)
+  await sleep(360)
+  const linked = await s.ev(`(() => {
+    const sel = document.querySelector('select[aria-label="关联目标"]');
+    if (!sel) return null;
+    const opt = [...sel.options].find(o => (o.textContent||'').includes('ScriptEval'));
+    if (!opt) return null;
+    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setter.call(sel, opt.value);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return opt.value;
+  })()`)
+  await sleep(420)
+  st = await s.st()
+  const pLinked = st.projects.find(p => p.name === '年度目标推进')
+  c('项目可关联目标', !!linked && !!pLinked && pLinked.goalId === linked, pLinked ? pLinked.goalId : 'no project')
+
+  await s.nav('目标管理')
+  await sleep(320)
+  c('目标页显示关联项目', (await s.ev(`window.__tm.body()`)).includes('个项目'))
+
+  await s.nav('任务管理')
+  await s.ev(`window.__tm.click('.btn-primary','新建任务')`)
+  await sleep(260)
+  const taskGoal = await s.ev(`(() => {
+    const modal = document.querySelector('.modal');
+    if (!modal) return null;
+    const sel = [...modal.querySelectorAll('select')].find(x => [...x.options].some(o => (o.textContent||'').includes('ScriptEval')));
+    if (!sel) return null;
+    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setter.call(sel, 'g1');
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    window.__tm.set('.modal input.input','关联目标测试任务');
+    return 'g1';
+  })()`)
+  await sleep(240)
+  await s.ev(`window.__tm.click('.modal-foot .btn-primary','保存')`)
+  await sleep(400)
+  st = await s.st()
+  const tLinked = st.tasks.find(t => t.title === '关联目标测试任务')
+  c('任务可关联目标', !!taskGoal && !!tLinked && tLinked.goalId === 'g1', tLinked ? tLinked.goalId : 'no task')
 })
 
 suite('知识 / 经验 / 成果', async (s, c) => {

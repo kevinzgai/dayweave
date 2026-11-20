@@ -20,7 +20,7 @@ export const taskSchedule = (task) => {
   return [label, task.time].filter(Boolean).join(' ')
 }
 export const isTaskOverdue = (task) => task.status !== 'done' && !!task.date && task.date < todayStr()
-const normalizeTask = (task) => ({ ...task, date: task.date || '', todayTop: !!task.todayTop && canBeTodayTop(task) })
+const normalizeTask = (task) => ({ ...task, date: task.date || '', projectId: task.projectId || '', goalId: task.goalId || '', todayTop: !!task.todayTop && canBeTodayTop(task) })
 
 const dateKey = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 
@@ -74,6 +74,7 @@ const daysBetween = (from, to) => Math.round((new Date(`${to}T00:00:00`) - new D
 
 // 老数据补默认字段：只补缺，不覆盖已有值
 const normalizeProject = (p) => ({
+  goalId: '',
   startDate: '',
   status: (p.progress || 0) >= 100 ? 'done' : 'active',
   progressMode: 'manual',

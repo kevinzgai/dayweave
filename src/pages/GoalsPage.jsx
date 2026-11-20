@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Trash2, Target, Calendar, Minus, Check } from 'lucide-react'
+import { Plus, Trash2, Target, Calendar, Minus, Check, FolderKanban, ListTodo } from 'lucide-react'
 import { useStore, GOAL_CATS } from '../store'
 import {
   Button, Card, EmptyState, FormField, FormGrid, IconButton, Modal, PageHero,
@@ -127,6 +127,27 @@ export default function GoalsPage() {
                   </div>
                   <div className="bar-track"><i style={{ width: pct + '%', background: col }} /></div>
                   <div className="ui-help mt-1.5">完成度 {pct}%</div>
+                  {/* 关联：这条目标下面挂着哪些项目 / 任务 */}
+                  {(() => {
+                    const relProjects = (state.projects || []).filter(p => p.goalId === g.id)
+                    const relTasks = (state.tasks || []).filter(t => t.goalId === g.id)
+                    if (!relProjects.length && !relTasks.length) return null
+                    return (
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {relProjects.length > 0 && (
+                          <span className="ui-help flex items-center gap-1">
+                            <FolderKanban size={11} /> {relProjects.length} 个项目
+                            {relProjects.slice(0, 2).map(p => ` · ${p.name}`).join('')}
+                          </span>
+                        )}
+                        {relTasks.length > 0 && (
+                          <span className="ui-help flex items-center gap-1">
+                            <ListTodo size={11} /> {relTasks.length} 个任务
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })}

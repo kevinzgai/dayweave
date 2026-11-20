@@ -6,15 +6,15 @@ import { Button, Checkbox, FormField, FormGrid, Modal, Select, TextInput } from 
 export default function AddTask({ onAdd, compact = false, onCreated, portalTarget }) {
   const { state } = useStore()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '' })
+  const [form, setForm] = useState({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '', goalId: '' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v, ...(k === 'date' && !canBeTodayTop({ date: v }) ? { todayTop: false } : {}) }))
   const topCount = state.tasks.filter(t => t.todayTop && t.status !== 'done' && canBeTodayTop(t)).length
   const topFull = topCount >= 3
   const future = !canBeTodayTop(form)
-  const show = () => { setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '' }); setOpen(true) }
+  const show = () => { setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '', goalId: '' }); setOpen(true) }
   const close = () => {
     setOpen(false)
-    setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '' })
+    setForm({ title: '', quadrant: 'Q2', date: todayStr(), time: '', todayTop: false, projectId: '', goalId: '' })
   }
   const submit = (e) => {
     e.preventDefault()
@@ -82,6 +82,13 @@ export default function AddTask({ onAdd, compact = false, onCreated, portalTarge
           <Select value={form.projectId || ''} onChange={e => set('projectId', e.target.value)}>
             <option value="">不关联</option>
             {state.projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+        </FormField>
+
+        <FormField label="服务于目标（可选）" hint="把任务挂到某个年度/阶段目标上">
+          <Select value={form.goalId || ''} onChange={e => set('goalId', e.target.value)}>
+            <option value="">不关联</option>
+            {(state.goals || []).map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
           </Select>
         </FormField>
       </Modal>
